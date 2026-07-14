@@ -1,0 +1,48 @@
+:root {
+  --bg: #F1F3EC;
+  --surface: #E7EAE0;
+  --surface-raised: #FBFCF8;
+  --ink: #1C231F;
+  --muted: #5C6459;
+  --primary: #1E7A3C;
+  --primary-soft: #2E9B4F;
+  --accent: #2F8F45;
+  --line: #D3D7C9;
+  --p0: #A8341F;
+  --p1: #A8631E;
+  --good: #279450;
+  --shadow: 0 1px 2px rgba(28, 35, 31, 0.06), 0 8px 24px -12px rgba(28, 35, 31, 0.18);
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, "Liberation Mono", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12160F;
+    --surface: #1A1F17;
+    --surface-raised: #1F2519;
+    --ink: #E7EAE0;
+    --muted: #9AA38F;
+    --primary: #5FCB82;
+    --primary-soft: #7FE29B;
+    --accent: #4CBB6C;
+    --line: #2B3126;
+    --p0: #E07A62;
+    --p1: #E3A25E;
+    --good: #5FCB82;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #12160F; --surface: #1A1F17; --surface-raised: #1F2519; --ink: #E7EAE0;
+  --muted: #9AA38F; --primary: #5FCB82; --primary-soft: #7FE29B; --accent: #4CBB6C;
+  --line: #2B3126; --p0: #E07A62; --p1: #E3A25E; --good: #5FCB82;
+}
+
+:root[data-theme="light"] {
+  --bg: #F1F3EC; --surface: #E7EAE0; --surface-raised: #FBFCF8; --ink: #1C231F;
+  --muted: #5C6459; --primary: #1E7A3C; --primary-soft: #2E9B4F; --accent: #2F8F45;
+  --line: #D3D7C9; --p0: #A8341F; --p1: #A8631E; --good: #279450;
+}

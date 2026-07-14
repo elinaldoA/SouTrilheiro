@@ -1,0 +1,121 @@
+import { useEffect } from 'react';
+import { Routes, Route, Link } from 'react-router-dom';
+import BottomNav from './components/BottomNav';
+import Sidebar from './components/Sidebar';
+import Avatar from './components/Avatar';
+import Buscar from './pages/Buscar';
+import DetalheTrilha from './pages/DetalheTrilha';
+import Gravar from './pages/Gravar';
+import Historico from './pages/Historico';
+import DetalhePercurso from './pages/DetalhePercurso';
+import Perfil from './pages/Perfil';
+import CadastrarTrilha from './pages/CadastrarTrilha';
+import Moderacao from './pages/Moderacao';
+import PainelGuia from './pages/PainelGuia';
+import Feed from './pages/Feed';
+import Pessoas from './pages/Pessoas';
+import Conversas from './pages/Conversas';
+import Chat from './pages/Chat';
+import PerfilPublico from './pages/PerfilPublico';
+import Hashtag from './pages/Hashtag';
+import ThemeToggle from './components/ThemeToggle';
+import LoginForm from './components/LoginForm';
+import RedefinirSenhaForm from './components/RedefinirSenhaForm';
+import { useAuth } from './context/AuthContext';
+import { sincronizarPercursosPendentes } from './lib/sincronizarPercursos';
+
+function Home() {
+  const { ehAdmin, ehGuiaAprovado } = useAuth();
+  if (ehAdmin) return <Moderacao />;
+  if (ehGuiaAprovado) return <PainelGuia />;
+  return <Buscar />;
+}
+
+function TelaAutenticacao({ children }) {
+  return (
+    <div className="auth-screen">
+      <div className="auth-card">
+        <img src="/icons/logo.jpeg" alt="SouTrilheiro" className="auth-logo" />
+        <span className="auth-brand">SouTrilheiro</span>
+        <div className="auth-form-wrap">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const { usuario, autenticado, carregando, recuperandoSenha } = useAuth();
+
+  useEffect(() => {
+    if (!usuario) return;
+    sincronizarPercursosPendentes(usuario.id);
+    const aoFicarOnline = () => sincronizarPercursosPendentes(usuario.id);
+    window.addEventListener('online', aoFicarOnline);
+    return () => window.removeEventListener('online', aoFicarOnline);
+  }, [usuario]);
+
+  if (carregando) {
+    return (
+      <TelaAutenticacao>
+        <p className="state-message">Carregando…</p>
+      </TelaAutenticacao>
+    );
+  }
+
+  if (recuperandoSenha) {
+    return (
+      <TelaAutenticacao>
+        <h1 style={{ fontSize: '1.2rem' }}>Redefinir senha</h1>
+        <RedefinirSenhaForm />
+      </TelaAutenticacao>
+    );
+  }
+
+  if (!autenticado || !usuario) {
+    return (
+      <TelaAutenticacao>
+        <LoginForm />
+      </TelaAutenticacao>
+    );
+  }
+
+  return (
+    <div className="app-layout">
+      <Sidebar />
+
+      <div className="app-shell">
+        <header className="app-header">
+          <Link to="/perfil" className="app-header-user">
+            <Avatar nome={usuario.nome} url={usuario.avatar_url} size={32} />
+            <span className="app-header-user-name">{usuario.nome}</span>
+          </Link>
+          <ThemeToggle />
+        </header>
+
+        <main className="app-main">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/buscar" element={<Buscar />} />
+            <Route path="/painel-guia" element={<PainelGuia />} />
+            <Route path="/trilha/:id" element={<DetalheTrilha />} />
+            <Route path="/gravar" element={<Gravar />} />
+            <Route path="/gravar/:trilhaId" element={<Gravar />} />
+            <Route path="/historico" element={<Historico />} />
+            <Route path="/historico/:id" element={<DetalhePercurso />} />
+            <Route path="/perfil" element={<Perfil />} />
+            <Route path="/usuario/:id" element={<PerfilPublico />} />
+            <Route path="/feed" element={<Feed />} />
+            <Route path="/hashtag/:tag" element={<Hashtag />} />
+            <Route path="/pessoas" element={<Pessoas />} />
+            <Route path="/chat" element={<Conversas />} />
+            <Route path="/chat/:id" element={<Chat />} />
+            <Route path="/cadastrar-trilha" element={<CadastrarTrilha />} />
+            <Route path="/moderacao" element={<Moderacao />} />
+          </Routes>
+        </main>
+
+        <BottomNav />
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,17 @@
+# Dependências e build
+node_modules/
+dist/
+dev-dist/
+
+# Variáveis de ambiente
+.env
+.env.local
+*.env
+!.env.example
+
+# Migrations do banco (não versionadas)
+database/migration_*.sql
+
+# Diversos
+.DS_Store
+.claude/

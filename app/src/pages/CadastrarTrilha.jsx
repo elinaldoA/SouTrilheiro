@@ -1,14 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { cadastrarTrilha } from '../api/trilhas';
 import { enviarFoto } from '../api/fotos';
 import { enviarVideo } from '../api/videos';
-import { distanciaKm as calcularDistanciaKm } from '../lib/geo';
 import { paraNumero, sanitizarDecimal, sanitizarTempo, paraMinutos, formatarHorasMinutos } from '../lib/numero';
 import { CATEGORIAS_TRILHA } from '../lib/categorias';
-import TrailMap from '../components/TrailMap';
-import TrailMapDrawer from '../components/TrailMapDrawer';
+import TracadoEditor from '../components/TracadoEditor';
 
 export default function CadastrarTrilha() {
   const { usuario, ehAdmin, ehGuiaAprovado } = useAuth();
@@ -29,23 +27,9 @@ export default function CadastrarTrilha() {
   const [foto, setFoto] = useState(null);
   const [video, setVideo] = useState(null);
   const [localizacao, setLocalizacao] = useState(null);
-  const [buscandoLocalizacao, setBuscandoLocalizacao] = useState(false);
+  const [pathGravado, setPathGravado] = useState([]);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState(null);
-
-  const [gravando, setGravando] = useState(false);
-  const [pathGravado, setPathGravado] = useState([]);
-  const [erroGravacao, setErroGravacao] = useState(null);
-  const watchIdRef = useRef(null);
-
-  const [desenhandoNoMapa, setDesenhandoNoMapa] = useState(false);
-  const [pontosDesenho, setPontosDesenho] = useState([]);
-
-  useEffect(() => {
-    return () => {
-      if (watchIdRef.current != null) navigator.geolocation.clearWatch(watchIdRef.current);
-    };
-  }, []);
 
   if (!usuario) {
     return (
@@ -57,85 +41,6 @@ export default function CadastrarTrilha() {
 
   if (!ehAdmin && !ehGuiaAprovado) {
     return <p className="state-message">Somente administradores e guias aprovados podem cadastrar trilhas.</p>;
-  }
-
-  function usarLocalizacaoAtual() {
-    setBuscandoLocalizacao(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocalizacao({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setBuscandoLocalizacao(false);
-      },
-      () => {
-        setErro('Não foi possível obter sua localização. Verifique a permissão de GPS.');
-        setBuscandoLocalizacao(false);
-      }
-    );
-  }
-
-  function iniciarGravacaoTracado() {
-    if (!navigator.geolocation) {
-      setErroGravacao('Este navegador não oferece geolocalização.');
-      return;
-    }
-    setErroGravacao(null);
-    setPathGravado([]);
-    setGravando(true);
-
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setPathGravado((anteriores) => [...anteriores, [latitude, longitude]]);
-      },
-      () => setErroGravacao('Não foi possível acessar sua localização. Verifique a permissão de GPS.'),
-      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
-    );
-  }
-
-  function pararGravacaoTracado() {
-    if (watchIdRef.current != null) navigator.geolocation.clearWatch(watchIdRef.current);
-    watchIdRef.current = null;
-    setGravando(false);
-
-    if (pathGravado.length > 0) {
-      setLocalizacao({ lat: pathGravado[0][0], lng: pathGravado[0][1] });
-    }
-  }
-
-  function descartarTracado() {
-    setPathGravado([]);
-  }
-
-  function iniciarDesenhoNoMapa() {
-    if (!localizacao) {
-      setErro('Marque a localização do início da trilha antes de desenhar o traçado.');
-      return;
-    }
-    setErro(null);
-    setPontosDesenho([]);
-    setDesenhandoNoMapa(true);
-  }
-
-  function adicionarPontoDesenho(ponto) {
-    setPontosDesenho((anteriores) => [...anteriores, ponto]);
-  }
-
-  function desfazerPontoDesenho() {
-    setPontosDesenho((anteriores) => anteriores.slice(0, -1));
-  }
-
-  function limparDesenho() {
-    setPontosDesenho([]);
-  }
-
-  function concluirDesenho() {
-    setPathGravado(pontosDesenho);
-    setDesenhandoNoMapa(false);
-  }
-
-  function cancelarDesenho() {
-    setDesenhandoNoMapa(false);
-    setPontosDesenho([]);
   }
 
   function alternarUnidadeTempo(novaUnidade) {
@@ -359,87 +264,7 @@ export default function CadastrarTrilha() {
           </label>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-outline" onClick={usarLocalizacaoAtual} disabled={buscandoLocalizacao || gravando}>
-            {buscandoLocalizacao ? 'Buscando…' : localizacao ? 'Localização marcada ✓' : 'Usar minha localização atual'}
-          </button>
-          {!gravando ? (
-            <button type="button" className="btn btn-outline" onClick={iniciarGravacaoTracado} disabled={desenhandoNoMapa}>
-              {pathGravado.length > 1 ? 'Regravar traçado no GPS' : 'Gravar traçado no GPS'}
-            </button>
-          ) : (
-            <button type="button" className="btn btn-primary" onClick={pararGravacaoTracado}>
-              Parar gravação ({pathGravado.length} pontos)
-            </button>
-          )}
-          {!desenhandoNoMapa && (
-            <button type="button" className="btn btn-outline" onClick={iniciarDesenhoNoMapa} disabled={gravando}>
-              Desenhar traçado no mapa
-            </button>
-          )}
-        </div>
-        <p style={{ color: 'var(--muted)', fontSize: '0.78rem', margin: 0 }}>
-          Caminhe pela trilha com o celular para gravar o percurso real no mapa, marque só o ponto de início, ou desenhe o
-          traçado clicando no mapa.
-        </p>
-
-        {desenhandoNoMapa && (
-          <>
-            <TrailMapDrawer centro={localizacao} pontos={pontosDesenho} onAdicionarPonto={adicionarPontoDesenho} alturaPx={220} />
-            <p style={{ color: 'var(--p1)', fontSize: '0.8rem', margin: 0, fontFamily: 'var(--mono)' }}>
-              {pontosDesenho.length} pontos marcados
-              {pontosDesenho.length > 1 &&
-                ` · ${pontosDesenho
-                  .slice(1)
-                  .reduce((soma, p, i) => soma + calcularDistanciaKm(pontosDesenho[i][0], pontosDesenho[i][1], p[0], p[1]), 0)
-                  .toFixed(2)} km`}
-            </p>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button type="button" className="btn btn-outline" onClick={desfazerPontoDesenho} disabled={pontosDesenho.length === 0}>
-                Desfazer último ponto
-              </button>
-              <button type="button" className="btn btn-outline" onClick={limparDesenho} disabled={pontosDesenho.length === 0}>
-                Limpar
-              </button>
-              <button type="button" className="btn btn-primary" onClick={concluirDesenho} disabled={pontosDesenho.length < 2}>
-                Concluir traçado
-              </button>
-              <button type="button" className="btn btn-outline" onClick={cancelarDesenho}>
-                Cancelar
-              </button>
-            </div>
-          </>
-        )}
-
-        {gravando && (
-          <p style={{ color: 'var(--p1)', fontSize: '0.8rem', margin: 0, fontFamily: 'var(--mono)' }}>
-            Gravando… {pathGravado.length} pontos capturados
-            {pathGravado.length > 1 &&
-              ` · ${pathGravado
-                .slice(1)
-                .reduce((soma, p, i) => soma + calcularDistanciaKm(pathGravado[i][0], pathGravado[i][1], p[0], p[1]), 0)
-                .toFixed(2)} km`}
-          </p>
-        )}
-
-        {!gravando && pathGravado.length > 1 && (
-          <>
-            <TrailMap path={pathGravado} alturaPx={180} />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" className="btn btn-outline" onClick={descartarTracado}>
-                Descartar traçado gravado
-              </button>
-            </div>
-          </>
-        )}
-
-        {erroGravacao && <p style={{ color: 'var(--p0)', fontSize: '0.85rem', margin: 0 }}>{erroGravacao}</p>}
-
-        {localizacao && (
-          <p style={{ color: 'var(--muted)', fontSize: '0.78rem', margin: 0, fontFamily: 'var(--mono)' }}>
-            {localizacao.lat.toFixed(5)}, {localizacao.lng.toFixed(5)}
-          </p>
-        )}
+        <TracadoEditor onChange={({ localizacao: loc, path }) => { setLocalizacao(loc); setPathGravado(path); }} />
 
         {erro && <p style={{ color: 'var(--p0)', fontSize: '0.85rem', margin: 0 }}>{erro}</p>}
 

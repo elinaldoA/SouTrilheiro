@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { CATEGORIAS_TRILHA } from '../lib/categorias';
 import { paraNumero, sanitizarDecimal, sanitizarTempo, paraMinutos, formatarHorasMinutos } from '../lib/numero';
+import TracadoEditor from './TracadoEditor';
 
 export default function EditarTrilhaForm({ trilha, onCancelar, onSalvar }) {
   const [nome, setNome] = useState(trilha.nome);
+  const [localizacao, setLocalizacao] = useState(
+    trilha.lat != null && trilha.lng != null ? { lat: trilha.lat, lng: trilha.lng } : null
+  );
+  const [pathGravado, setPathGravado] = useState(trilha.path_geojson ?? []);
   const [cidade, setCidade] = useState(trilha.cidade);
   const [estado, setEstado] = useState(trilha.estado);
   const [distanciaKm, setDistanciaKm] = useState(String(trilha.distancia_km));
@@ -55,6 +60,9 @@ export default function EditarTrilhaForm({ trilha, onCancelar, onSalvar }) {
           categoria,
           tipoPreco,
           preco: tipoPreco === 'paga' ? Number(preco) : null,
+          lat: localizacao?.lat,
+          lng: localizacao?.lng,
+          pathGeojson: pathGravado.length > 1 ? pathGravado : undefined,
         },
         foto,
         video
@@ -165,6 +173,15 @@ export default function EditarTrilhaForm({ trilha, onCancelar, onSalvar }) {
           />
         )}
       </div>
+
+      <TracadoEditor
+        localizacaoInicial={localizacao}
+        pathInicial={trilha.path_geojson ?? []}
+        onChange={({ localizacao: loc, path }) => {
+          setLocalizacao(loc);
+          setPathGravado(path);
+        }}
+      />
 
       {trilha.fotoUrl && !foto && (
         <img

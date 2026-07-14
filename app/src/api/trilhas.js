@@ -96,7 +96,7 @@ export async function listarTrilhasDoUsuario(usuarioId) {
   const { data, error } = await supabase
     .from('trilhas')
     .select(
-      'id, nome, cidade, estado, distancia_km, elevacao_m, tempo_estimado_min, dificuldade, categoria, tipo_preco, preco, status, criado_em, fotos(url)'
+      'id, nome, cidade, estado, distancia_km, elevacao_m, tempo_estimado_min, dificuldade, categoria, tipo_preco, preco, status, criado_em, lat, lng, path_geojson, fotos(url)'
     )
     .eq('criado_por', usuarioId)
     .order('criado_em', { foreignTable: 'fotos', ascending: false })
@@ -110,7 +110,7 @@ export async function listarTodasTrilhas() {
   const { data, error } = await supabase
     .from('trilhas')
     .select(
-      'id, nome, cidade, estado, distancia_km, elevacao_m, tempo_estimado_min, dificuldade, categoria, tipo_preco, preco, status, criado_em, fotos(url)'
+      'id, nome, cidade, estado, distancia_km, elevacao_m, tempo_estimado_min, dificuldade, categoria, tipo_preco, preco, status, criado_em, lat, lng, path_geojson, fotos(url)'
     )
     .order('criado_em', { foreignTable: 'fotos', ascending: false })
     .limit(1, { foreignTable: 'fotos' })
@@ -120,25 +120,29 @@ export async function listarTodasTrilhas() {
 }
 
 export async function atualizarTrilha(id, dados) {
-  const { data, error } = await supabase
-    .from('trilhas')
-    .update({
-      nome: dados.nome,
-      descricao: dados.descricao || null,
-      cidade: dados.cidade,
-      estado: dados.estado.toUpperCase(),
-      distancia_km: dados.distanciaKm,
-      elevacao_m: dados.elevacaoM,
-      tempo_estimado_min: dados.tempoEstimadoMin,
-      dificuldade: dados.dificuldade,
-      categoria: dados.categoria,
-      tipo_preco: dados.tipoPreco,
-      preco: dados.tipoPreco === 'paga' ? dados.preco : null,
-      atualizado_em: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .select()
-    .single();
+  const atualizacao = {
+    nome: dados.nome,
+    descricao: dados.descricao || null,
+    cidade: dados.cidade,
+    estado: dados.estado.toUpperCase(),
+    distancia_km: dados.distanciaKm,
+    elevacao_m: dados.elevacaoM,
+    tempo_estimado_min: dados.tempoEstimadoMin,
+    dificuldade: dados.dificuldade,
+    categoria: dados.categoria,
+    tipo_preco: dados.tipoPreco,
+    preco: dados.tipoPreco === 'paga' ? dados.preco : null,
+    atualizado_em: new Date().toISOString(),
+  };
+  if (dados.lat != null && dados.lng != null) {
+    atualizacao.lat = dados.lat;
+    atualizacao.lng = dados.lng;
+  }
+  if (dados.pathGeojson !== undefined) {
+    atualizacao.path_geojson = dados.pathGeojson;
+  }
+
+  const { data, error } = await supabase.from('trilhas').update(atualizacao).eq('id', id).select().single();
   if (error) throw error;
   return data;
 }

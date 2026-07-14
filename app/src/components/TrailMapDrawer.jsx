@@ -23,7 +23,7 @@ function CapturarCliques({ aoClicar }) {
   return null;
 }
 
-export default function TrailMapDrawer({ centro, pontos, onAdicionarPonto, alturaPx = 220 }) {
+export default function TrailMapDrawer({ centro, pontos, onAdicionarPonto, onMoverPonto, onRemoverPonto, alturaPx = 220 }) {
   if (!centro) return null;
 
   return (
@@ -41,7 +41,16 @@ export default function TrailMapDrawer({ centro, pontos, onAdicionarPonto, altur
         <CapturarCliques aoClicar={onAdicionarPonto} />
         {pontos.length > 1 && <Polyline positions={pontos} pathOptions={{ color: '#B5622A', weight: 4 }} />}
         {pontos.map((p, i) => (
-          <Marker key={i} position={p} icon={icone} />
+          <Marker
+            key={i}
+            position={p}
+            icon={icone}
+            draggable
+            eventHandlers={{
+              dragend: (e) => onMoverPonto?.(i, [e.target.getLatLng().lat, e.target.getLatLng().lng]),
+              click: () => onRemoverPonto?.(i),
+            }}
+          />
         ))}
       </MapContainer>
     </div>

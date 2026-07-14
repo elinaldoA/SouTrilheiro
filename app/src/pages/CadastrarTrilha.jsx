@@ -5,8 +5,10 @@ import { cadastrarTrilha } from '../api/trilhas';
 import { enviarFoto } from '../api/fotos';
 import { enviarVideo } from '../api/videos';
 import { distanciaKm as calcularDistanciaKm } from '../lib/geo';
+import { paraNumero, sanitizarDecimal, sanitizarTempo, paraMinutos, formatarHorasMinutos } from '../lib/numero';
 import { CATEGORIAS_TRILHA } from '../lib/categorias';
 import TrailMap from '../components/TrailMap';
+import TrailMapDrawer from '../components/TrailMapDrawer';
 
 export default function CadastrarTrilha() {
   const { usuario, ehAdmin, ehGuiaAprovado } = useAuth();
@@ -18,7 +20,8 @@ export default function CadastrarTrilha() {
   const [estado, setEstado] = useState('');
   const [distanciaKm, setDistanciaKm] = useState('');
   const [elevacaoM, setElevacaoM] = useState('');
-  const [tempoEstimadoMin, setTempoEstimadoMin] = useState('');
+  const [tempoEstimado, setTempoEstimado] = useState('');
+  const [unidadeTempo, setUnidadeTempo] = useState('min');
   const [dificuldade, setDificuldade] = useState('facil');
   const [categoria, setCategoria] = useState('mata');
   const [tipoPreco, setTipoPreco] = useState('gratuita');
@@ -34,6 +37,9 @@ export default function CadastrarTrilha() {
   const [pathGravado, setPathGravado] = useState([]);
   const [erroGravacao, setErroGravacao] = useState(null);
   const watchIdRef = useRef(null);
+
+  const [desenhandoNoMapa, setDesenhandoNoMapa] = useState(false);
+  const [pontosDesenho, setPontosDesenho] = useState([]);
 
   useEffect(() => {
     return () => {
@@ -100,6 +106,47 @@ export default function CadastrarTrilha() {
     setPathGravado([]);
   }
 
+  function iniciarDesenhoNoMapa() {
+    if (!localizacao) {
+      setErro('Marque a localização do início da trilha antes de desenhar o traçado.');
+      return;
+    }
+    setErro(null);
+    setPontosDesenho([]);
+    setDesenhandoNoMapa(true);
+  }
+
+  function adicionarPontoDesenho(ponto) {
+    setPontosDesenho((anteriores) => [...anteriores, ponto]);
+  }
+
+  function desfazerPontoDesenho() {
+    setPontosDesenho((anteriores) => anteriores.slice(0, -1));
+  }
+
+  function limparDesenho() {
+    setPontosDesenho([]);
+  }
+
+  function concluirDesenho() {
+    setPathGravado(pontosDesenho);
+    setDesenhandoNoMapa(false);
+  }
+
+  function cancelarDesenho() {
+    setDesenhandoNoMapa(false);
+    setPontosDesenho([]);
+  }
+
+  function alternarUnidadeTempo(novaUnidade) {
+    if (novaUnidade === unidadeTempo) return;
+    const totalMinutos = paraMinutos(tempoEstimado, unidadeTempo);
+    if (!Number.isNaN(totalMinutos)) {
+      setTempoEstimado(novaUnidade === 'h' ? formatarHorasMinutos(totalMinutos) : String(Math.round(totalMinutos)));
+    }
+    setUnidadeTempo(novaUnidade);
+  }
+
   async function enviar(e) {
     e.preventDefault();
     if (!localizacao) {
@@ -108,6 +155,16 @@ export default function CadastrarTrilha() {
     }
     if (tipoPreco === 'paga' && !(Number(preco) > 0)) {
       setErro('Informe o preço da trilha paga.');
+      return;
+    }
+    const distanciaKmNum = paraNumero(distanciaKm);
+    const tempoEstimadoMinFinal = Math.round(paraMinutos(tempoEstimado, unidadeTempo));
+    if (Number.isNaN(distanciaKmNum)) {
+      setErro('Informe uma distância válida.');
+      return;
+    }
+    if (Number.isNaN(tempoEstimadoMinFinal)) {
+      setErro('Informe um tempo estimado válido.');
       return;
     }
     setErro(null);
@@ -125,9 +182,9 @@ export default function CadastrarTrilha() {
         descricao,
         cidade,
         estado,
-        distanciaKm: Number(distanciaKm),
+        distanciaKm: distanciaKmNum,
         elevacaoM: Number(elevacaoM),
-        tempoEstimadoMin: Number(tempoEstimadoMin),
+        tempoEstimadoMin: tempoEstimadoMinFinal,
         dificuldade,
         categoria,
         tipoPreco,
@@ -194,12 +251,11 @@ export default function CadastrarTrilha() {
 
         <div style={{ display: 'flex', gap: 8 }}>
           <input
-            type="number"
-            step="0.1"
-            min="0"
+            type="text"
+            inputMode="decimal"
             placeholder="Distância (km)"
             value={distanciaKm}
-            onChange={(e) => setDistanciaKm(e.target.value)}
+            onChange={(e) => setDistanciaKm(sanitizarDecimal(e.target.value))}
             required
             className="field"
             style={{ flex: 1, minWidth: 0 }}
@@ -218,21 +274,31 @@ export default function CadastrarTrilha() {
 
         <div style={{ display: 'flex', gap: 8 }}>
           <input
-            type="number"
-            min="0"
-            placeholder="Tempo estimado (min)"
-            value={tempoEstimadoMin}
-            onChange={(e) => setTempoEstimadoMin(e.target.value)}
+            type="text"
+            inputMode={unidadeTempo === 'h' ? 'text' : 'decimal'}
+            placeholder={unidadeTempo === 'h' ? 'Tempo estimado (ex: 1:30)' : 'Tempo estimado (min)'}
+            value={tempoEstimado}
+            onChange={(e) => setTempoEstimado(sanitizarTempo(e.target.value, unidadeTempo))}
             required
             className="field"
             style={{ flex: 1, minWidth: 0 }}
           />
-          <select value={dificuldade} onChange={(e) => setDificuldade(e.target.value)} className="field" style={{ flex: 1, minWidth: 0 }}>
-            <option value="facil">Fácil</option>
-            <option value="moderada">Moderada</option>
-            <option value="dificil">Difícil</option>
+          <select
+            value={unidadeTempo}
+            onChange={(e) => alternarUnidadeTempo(e.target.value)}
+            className="field"
+            style={{ flex: 'none', width: 90 }}
+          >
+            <option value="min">min</option>
+            <option value="h">horas</option>
           </select>
         </div>
+
+        <select value={dificuldade} onChange={(e) => setDificuldade(e.target.value)} className="field">
+          <option value="facil">Fácil</option>
+          <option value="moderada">Moderada</option>
+          <option value="dificil">Difícil</option>
+        </select>
 
         <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="field">
           {CATEGORIAS_TRILHA.map((c) => (
@@ -298,7 +364,7 @@ export default function CadastrarTrilha() {
             {buscandoLocalizacao ? 'Buscando…' : localizacao ? 'Localização marcada ✓' : 'Usar minha localização atual'}
           </button>
           {!gravando ? (
-            <button type="button" className="btn btn-outline" onClick={iniciarGravacaoTracado}>
+            <button type="button" className="btn btn-outline" onClick={iniciarGravacaoTracado} disabled={desenhandoNoMapa}>
               {pathGravado.length > 1 ? 'Regravar traçado no GPS' : 'Gravar traçado no GPS'}
             </button>
           ) : (
@@ -306,10 +372,44 @@ export default function CadastrarTrilha() {
               Parar gravação ({pathGravado.length} pontos)
             </button>
           )}
+          {!desenhandoNoMapa && (
+            <button type="button" className="btn btn-outline" onClick={iniciarDesenhoNoMapa} disabled={gravando}>
+              Desenhar traçado no mapa
+            </button>
+          )}
         </div>
         <p style={{ color: 'var(--muted)', fontSize: '0.78rem', margin: 0 }}>
-          Caminhe pela trilha com o celular para gravar o percurso real no mapa, ou apenas marque o ponto de início.
+          Caminhe pela trilha com o celular para gravar o percurso real no mapa, marque só o ponto de início, ou desenhe o
+          traçado clicando no mapa.
         </p>
+
+        {desenhandoNoMapa && (
+          <>
+            <TrailMapDrawer centro={localizacao} pontos={pontosDesenho} onAdicionarPonto={adicionarPontoDesenho} alturaPx={220} />
+            <p style={{ color: 'var(--p1)', fontSize: '0.8rem', margin: 0, fontFamily: 'var(--mono)' }}>
+              {pontosDesenho.length} pontos marcados
+              {pontosDesenho.length > 1 &&
+                ` · ${pontosDesenho
+                  .slice(1)
+                  .reduce((soma, p, i) => soma + calcularDistanciaKm(pontosDesenho[i][0], pontosDesenho[i][1], p[0], p[1]), 0)
+                  .toFixed(2)} km`}
+            </p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button" className="btn btn-outline" onClick={desfazerPontoDesenho} disabled={pontosDesenho.length === 0}>
+                Desfazer último ponto
+              </button>
+              <button type="button" className="btn btn-outline" onClick={limparDesenho} disabled={pontosDesenho.length === 0}>
+                Limpar
+              </button>
+              <button type="button" className="btn btn-primary" onClick={concluirDesenho} disabled={pontosDesenho.length < 2}>
+                Concluir traçado
+              </button>
+              <button type="button" className="btn btn-outline" onClick={cancelarDesenho}>
+                Cancelar
+              </button>
+            </div>
+          </>
+        )}
 
         {gravando && (
           <p style={{ color: 'var(--p1)', fontSize: '0.8rem', margin: 0, fontFamily: 'var(--mono)' }}>

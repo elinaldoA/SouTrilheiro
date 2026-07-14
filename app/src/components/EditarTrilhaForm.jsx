@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { CATEGORIAS_TRILHA } from '../lib/categorias';
+import { paraNumero, sanitizarDecimal, sanitizarTempo, paraMinutos, formatarHorasMinutos } from '../lib/numero';
 
 export default function EditarTrilhaForm({ trilha, onCancelar, onSalvar }) {
   const [nome, setNome] = useState(trilha.nome);
   const [cidade, setCidade] = useState(trilha.cidade);
   const [estado, setEstado] = useState(trilha.estado);
-  const [distanciaKm, setDistanciaKm] = useState(trilha.distancia_km);
+  const [distanciaKm, setDistanciaKm] = useState(String(trilha.distancia_km));
   const [elevacaoM, setElevacaoM] = useState(trilha.elevacao_m);
-  const [tempoEstimadoMin, setTempoEstimadoMin] = useState(trilha.tempo_estimado_min);
+  const [tempoEstimado, setTempoEstimado] = useState(String(trilha.tempo_estimado_min));
+  const [unidadeTempo, setUnidadeTempo] = useState('min');
   const [dificuldade, setDificuldade] = useState(trilha.dificuldade);
   const [categoria, setCategoria] = useState(trilha.categoria ?? 'mata');
   const [tipoPreco, setTipoPreco] = useState(trilha.tipo_preco ?? 'gratuita');
@@ -17,8 +19,27 @@ export default function EditarTrilhaForm({ trilha, onCancelar, onSalvar }) {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
 
+  function alternarUnidadeTempo(novaUnidade) {
+    if (novaUnidade === unidadeTempo) return;
+    const totalMinutos = paraMinutos(tempoEstimado, unidadeTempo);
+    if (!Number.isNaN(totalMinutos)) {
+      setTempoEstimado(novaUnidade === 'h' ? formatarHorasMinutos(totalMinutos) : String(Math.round(totalMinutos)));
+    }
+    setUnidadeTempo(novaUnidade);
+  }
+
   async function aoSalvar(e) {
     e.preventDefault();
+    const distanciaKmNum = paraNumero(distanciaKm);
+    const tempoEstimadoMinFinal = Math.round(paraMinutos(tempoEstimado, unidadeTempo));
+    if (Number.isNaN(distanciaKmNum)) {
+      setErro('Informe uma distância válida.');
+      return;
+    }
+    if (Number.isNaN(tempoEstimadoMinFinal)) {
+      setErro('Informe um tempo estimado válido.');
+      return;
+    }
     setErro(null);
     setSalvando(true);
     try {
@@ -27,9 +48,9 @@ export default function EditarTrilhaForm({ trilha, onCancelar, onSalvar }) {
           nome,
           cidade,
           estado,
-          distanciaKm: Number(distanciaKm),
+          distanciaKm: distanciaKmNum,
           elevacaoM: Number(elevacaoM),
-          tempoEstimadoMin: Number(tempoEstimadoMin),
+          tempoEstimadoMin: tempoEstimadoMinFinal,
           dificuldade,
           categoria,
           tipoPreco,
@@ -70,11 +91,10 @@ export default function EditarTrilhaForm({ trilha, onCancelar, onSalvar }) {
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <input
-          type="number"
-          step="0.1"
-          min="0"
+          type="text"
+          inputMode="decimal"
           value={distanciaKm}
-          onChange={(e) => setDistanciaKm(e.target.value)}
+          onChange={(e) => setDistanciaKm(sanitizarDecimal(e.target.value))}
           required
           className="field"
           placeholder="Distância (km)"
@@ -93,21 +113,30 @@ export default function EditarTrilhaForm({ trilha, onCancelar, onSalvar }) {
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <input
-          type="number"
-          min="0"
-          value={tempoEstimadoMin}
-          onChange={(e) => setTempoEstimadoMin(e.target.value)}
+          type="text"
+          inputMode={unidadeTempo === 'h' ? 'text' : 'decimal'}
+          value={tempoEstimado}
+          onChange={(e) => setTempoEstimado(sanitizarTempo(e.target.value, unidadeTempo))}
           required
           className="field"
-          placeholder="Tempo estimado (min)"
+          placeholder={unidadeTempo === 'h' ? 'Tempo estimado (ex: 1:30)' : 'Tempo estimado (min)'}
           style={{ flex: 1, minWidth: 0 }}
         />
-        <select value={dificuldade} onChange={(e) => setDificuldade(e.target.value)} className="field" style={{ flex: 1, minWidth: 0 }}>
-          <option value="facil">Fácil</option>
-          <option value="moderada">Moderada</option>
-          <option value="dificil">Difícil</option>
+        <select
+          value={unidadeTempo}
+          onChange={(e) => alternarUnidadeTempo(e.target.value)}
+          className="field"
+          style={{ flex: 'none', width: 90 }}
+        >
+          <option value="min">min</option>
+          <option value="h">horas</option>
         </select>
       </div>
+      <select value={dificuldade} onChange={(e) => setDificuldade(e.target.value)} className="field">
+        <option value="facil">Fácil</option>
+        <option value="moderada">Moderada</option>
+        <option value="dificil">Difícil</option>
+      </select>
 
       <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="field">
         {CATEGORIAS_TRILHA.map((c) => (

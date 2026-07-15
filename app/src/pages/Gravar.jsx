@@ -128,7 +128,7 @@ export default function Gravar() {
         setPercursoSalvo({ id: registro.id, remoto: true });
         setSalvando(false);
         return;
-      } catch (e) {
+      } catch {
         // provavelmente a conexão caiu no meio da tentativa — segue para o fallback local
       }
     }

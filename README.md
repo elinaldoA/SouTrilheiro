@@ -24,3 +24,52 @@ Pessoas que praticam atividades ao ar livre em trilhas — trekking, caminhada, 
 ## Estado atual
 
 O app já cobre o fluxo essencial (busca, mapa, gravação de percurso, histórico, login e uso offline) e os recursos de comunidade (avaliações, comentários, alertas, fotos, cadastro e moderação de trilhas). O traçado completo de trilhas cadastradas pela comunidade ainda é simplificado e deve ser aprimorado em versões futuras.
+
+## Stack
+
+- **Frontend**: React 18 + Vite, PWA via `vite-plugin-pwa` (service worker com cache offline de dados do Supabase e tiles de mapa).
+- **Mapa**: Leaflet + react-leaflet, tiles do MapTiler.
+- **Backend**: Supabase (Postgres, Auth, Storage) acessado diretamente do frontend via `@supabase/supabase-js` — não há um servidor de aplicação próprio.
+- **Funções server-side**: uma Supabase Edge Function (`supabase/functions/enviar-push`) para envio de push notifications.
+- **Testes**: Vitest, com `@testing-library/react` para componentes.
+- **Lint**: ESLint (flat config).
+
+## Estrutura do projeto
+
+```
+app/
+  src/
+    api/         chamadas ao Supabase, uma função por operação/tabela
+    components/  componentes reutilizáveis
+    context/     contexto React (auth, tema, presença, notificações)
+    lib/         funções puras (geo, gpx, formatação, validação de upload etc.)
+    pages/       uma página por rota (ver App.jsx)
+supabase/
+  functions/     Edge Functions do Supabase (Deno)
+database/        migrations e schema SQL (não versionado no git — histórico local apenas)
+```
+
+## Rodando localmente
+
+Pré-requisitos: Node 20+, uma instância Supabase (projeto próprio ou de desenvolvimento) e uma API key do MapTiler.
+
+```bash
+cd app
+cp .env.example .env   # preencha com suas credenciais Supabase/MapTiler/VAPID
+npm install
+npm run dev             # sobe o servidor de desenvolvimento (Vite)
+```
+
+Outros comandos úteis, todos rodados dentro de `app/`:
+
+```bash
+npm test        # roda os testes (Vitest)
+npm run lint    # roda o ESLint
+npm run build   # gera o build de produção em app/dist
+```
+
+O CI (`.github/workflows/ci.yml`) roda lint, testes e build a cada push/PR na `master`.
+
+## Deploy
+
+Não há pipeline de deploy automatizado. O build (`npm run build`) gera um PWA estático em `app/dist`, que pode ser hospedado em qualquer serviço de arquivos estáticos (Netlify, Vercel, Cloudflare Pages etc.) — configure lá as mesmas variáveis de ambiente do `.env`. A Edge Function em `supabase/functions/enviar-push` é publicada separadamente via `supabase functions deploy` (Supabase CLI). Migrations em `database/` precisam ser aplicadas manualmente no projeto Supabase de destino.

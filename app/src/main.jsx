@@ -7,6 +7,7 @@ import { NotificacoesProvider } from './context/NotificacoesContext';
 import { PresenceProvider } from './context/PresenceContext';
 import { ChatBadgeProvider } from './context/ChatBadgeContext';
 import App from './App';
+import UpdateBanner from './components/UpdateBanner';
 import './lib/installPrompt';
 import './styles/tokens.css';
 import './styles/global.css';
@@ -20,6 +21,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <PresenceProvider>
               <ChatBadgeProvider>
                 <App />
+                <UpdateBanner />
               </ChatBadgeProvider>
             </PresenceProvider>
           </NotificacoesProvider>

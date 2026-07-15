@@ -9,7 +9,8 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
+      injectRegister: false,
       includeAssets: ['icons/logo.jpeg', 'icons/icon-192.png', 'icons/icon-512.png'],
       devOptions: {
         enabled: true,

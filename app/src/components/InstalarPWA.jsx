@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react';
 import { obterPromptInstalacao, ouvirPromptInstalacao, appJaInstalado } from '../lib/installPrompt';
 
+function dicaInstalacaoManual() {
+  const ua = navigator.userAgent || '';
+  if (/iphone|ipad|ipod/i.test(ua)) {
+    return 'No Safari, toque em Compartilhar e depois em "Adicionar à Tela de Início".';
+  }
+  if (/android/i.test(ua)) {
+    return 'No menu (⋮) do Chrome, toque em "Instalar app" ou "Adicionar à tela inicial".';
+  }
+  return null;
+}
+
 export default function InstalarPWA() {
   const [prompt, setPrompt] = useState(obterPromptInstalacao);
   const [instalado, setInstalado] = useState(appJaInstalado);
@@ -14,7 +25,15 @@ export default function InstalarPWA() {
     });
   }, []);
 
-  if (instalado || !prompt) return null;
+  if (instalado) return null;
+
+  if (!prompt) {
+    const dica = dicaInstalacaoManual();
+    if (!dica) return null;
+    return (
+      <p style={{ color: 'var(--muted)', fontSize: '0.8rem', margin: 0 }}>{dica}</p>
+    );
+  }
 
   async function instalar() {
     setErro(null);

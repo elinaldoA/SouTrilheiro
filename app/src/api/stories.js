@@ -1,13 +1,14 @@
 import { supabase } from '../lib/supabaseClient';
+import { validarImagem, validarVideo } from '../lib/uploadSeguro';
 
 const BUCKET_POR_TIPO = { foto: 'fotos-trilhas', video: 'videos-trilhas' };
 
 export async function criarStory(usuarioId, { tipo, arquivo, trilhaId = null }) {
   const bucket = BUCKET_POR_TIPO[tipo];
-  const extensao = arquivo.name.split('.').pop();
+  const { extensao, contentType } = tipo === 'video' ? validarVideo(arquivo) : validarImagem(arquivo);
   const caminho = `stories/${usuarioId}-${Date.now()}.${extensao}`;
 
-  const { error: erroUpload } = await supabase.storage.from(bucket).upload(caminho, arquivo);
+  const { error: erroUpload } = await supabase.storage.from(bucket).upload(caminho, arquivo, { contentType });
   if (erroUpload) throw erroUpload;
 
   const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(caminho);

@@ -28,6 +28,39 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+    if (!jwt) {
+      return new Response(JSON.stringify({ error: 'Autenticação obrigatória' }), {
+        status: 401,
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { data: authData, error: authError } = await supabase.auth.getUser(jwt);
+    if (authError || !authData.user) {
+      return new Response(JSON.stringify({ error: 'Token inválido' }), {
+        status: 401,
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Só exige que o chamador seja um usuário autenticado e conhecido — não que
+    // usuario_id seja ele mesmo. A função é usada para notificar OUTRAS pessoas
+    // (marcação, menção, comentário em trilha/foto/vídeo de terceiros), então
+    // restringir a "só para si mesmo ou admin" quebraria esses fluxos legítimos.
+    // O que essa checagem impede é a chamada anônima (sem JWT válido).
+    const { data: chamador, error: erroChamador } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('auth_user_id', authData.user.id)
+      .single();
+    if (erroChamador || !chamador) {
+      return new Response(JSON.stringify({ error: 'Usuário não encontrado' }), {
+        status: 403,
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { usuario_id, titulo, corpo, url } = await req.json();
     if (!usuario_id || !titulo) {
       return new Response(JSON.stringify({ error: 'usuario_id e titulo são obrigatórios' }), {

@@ -1,14 +1,15 @@
 import { supabase } from '../lib/supabaseClient';
+import { validarVideo } from '../lib/uploadSeguro';
 
 const BUCKET = 'videos-trilhas';
 const CAMPOS = 'id, url, legenda, localizacao, criado_em, usuarios(id, nome)';
 
 export async function enviarVideo(trilhaId, usuarioId, arquivo, legenda, localizacao) {
-  const extensao = arquivo.name.split('.').pop();
+  const { extensao, contentType } = validarVideo(arquivo);
   const pasta = trilhaId ?? `${usuarioId}/feed`;
   const caminho = `${pasta}/${usuarioId}-${Date.now()}.${extensao}`;
 
-  const { error: erroUpload } = await supabase.storage.from(BUCKET).upload(caminho, arquivo);
+  const { error: erroUpload } = await supabase.storage.from(BUCKET).upload(caminho, arquivo, { contentType });
   if (erroUpload) throw erroUpload;
 
   const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(caminho);

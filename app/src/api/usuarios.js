@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { validarImagem } from '../lib/uploadSeguro';
 
 const BUCKET_AVATARES = 'avatares';
 
@@ -23,10 +24,10 @@ export async function buscarUsuariosPorNome(termo, excluirId) {
 }
 
 export async function enviarAvatar(authUserId, arquivo) {
-  const extensao = arquivo.name.split('.').pop();
+  const { extensao, contentType } = validarImagem(arquivo);
   const caminho = `${authUserId}/${Date.now()}.${extensao}`;
 
-  const { error: erroUpload } = await supabase.storage.from(BUCKET_AVATARES).upload(caminho, arquivo);
+  const { error: erroUpload } = await supabase.storage.from(BUCKET_AVATARES).upload(caminho, arquivo, { contentType });
   if (erroUpload) throw erroUpload;
 
   const { data: publicUrlData } = supabase.storage.from(BUCKET_AVATARES).getPublicUrl(caminho);

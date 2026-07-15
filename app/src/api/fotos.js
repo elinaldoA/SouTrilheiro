@@ -1,14 +1,15 @@
 import { supabase } from '../lib/supabaseClient';
+import { validarImagem } from '../lib/uploadSeguro';
 
 const BUCKET = 'fotos-trilhas';
 const CAMPOS = 'id, url, legenda, localizacao, criado_em, usuarios(id, nome)';
 
 export async function enviarFoto(trilhaId, usuarioId, arquivo, legenda, localizacao) {
-  const extensao = arquivo.name.split('.').pop();
+  const { extensao, contentType } = validarImagem(arquivo);
   const pasta = trilhaId ?? `${usuarioId}/feed`;
   const caminho = `${pasta}/${usuarioId}-${Date.now()}.${extensao}`;
 
-  const { error: erroUpload } = await supabase.storage.from(BUCKET).upload(caminho, arquivo);
+  const { error: erroUpload } = await supabase.storage.from(BUCKET).upload(caminho, arquivo, { contentType });
   if (erroUpload) throw erroUpload;
 
   const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(caminho);

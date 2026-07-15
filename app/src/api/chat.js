@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { validarImagem, validarVideo } from '../lib/uploadSeguro';
 
 /** Lista as conversas do usuário (diretas e grupos), com prévia da última mensagem. */
 export async function listarConversas(usuarioId) {
@@ -153,14 +154,31 @@ function tipoDoAnexo(arquivo) {
   return 'arquivo';
 }
 
-/** Envia o arquivo para o bucket de anexos do chat e retorna sua URL pública. */
+/**
+ * Envia o arquivo para o bucket de anexos do chat e retorna sua URL pública.
+ * Imagens e vídeos são validados contra uma lista de tipos conhecidos; qualquer
+ * outro tipo de arquivo é aceito (o chat permite documentos), mas é forçado como
+ * "application/octet-stream" para que o navegador nunca o renderize inline (evita
+ * que um HTML/SVG disfarçado de anexo execute script ao ser aberto direto do bucket).
+ */
 async function enviarAnexoParaStorage(conversaId, usuarioId, arquivo) {
-  const extensao = arquivo.name.split('.').pop();
+  const tipo = tipoDoAnexo(arquivo);
+  let extensao;
+  let contentType;
+  if (tipo === 'imagem') {
+    ({ extensao, contentType } = validarImagem(arquivo));
+  } else if (tipo === 'video') {
+    ({ extensao, contentType } = validarVideo(arquivo));
+  } else {
+    extensao = (arquivo.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
+    contentType = 'application/octet-stream';
+  }
+
   const caminho = `${conversaId}/${usuarioId}-${Date.now()}.${extensao}`;
-  const { error: erroUpload } = await supabase.storage.from('anexos-chat').upload(caminho, arquivo);
+  const { error: erroUpload } = await supabase.storage.from('anexos-chat').upload(caminho, arquivo, { contentType });
   if (erroUpload) throw erroUpload;
   const { data } = supabase.storage.from('anexos-chat').getPublicUrl(caminho);
-  return { url: data.publicUrl, tipo: tipoDoAnexo(arquivo), nome: arquivo.name };
+  return { url: data.publicUrl, tipo, nome: arquivo.name };
 }
 
 /** Envia uma mensagem, opcionalmente com um arquivo anexado (imagem, vídeo ou documento). */

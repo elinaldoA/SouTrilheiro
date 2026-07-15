@@ -4,6 +4,11 @@ import { meuPerfilGuia, solicitarSerGuia } from '../api/guias';
 
 const AuthContext = createContext(null);
 
+// A autorização real é imposta pelo trigger de banco (protege_campos_sensiveis_usuarios,
+// veja database/migration_correcoes_seguranca.sql); esta lista é só defesa em profundidade
+// no client para evitar enviar campos além do que a tela de perfil deveria editar.
+const CAMPOS_PERFIL_EDITAVEIS = ['nome', 'avatar_url'];
+
 async function garantirUsuario(authUser) {
   const { data: existente } = await supabase
     .from('usuarios')
@@ -146,9 +151,12 @@ export function AuthProvider({ children }) {
   const atualizarPerfil = useCallback(
     async (campos) => {
       if (!usuario) return;
+      const camposPermitidos = Object.fromEntries(
+        Object.entries(campos).filter(([chave]) => CAMPOS_PERFIL_EDITAVEIS.includes(chave))
+      );
       const { data, error } = await supabase
         .from('usuarios')
-        .update(campos)
+        .update(camposPermitidos)
         .eq('id', usuario.id)
         .select()
         .single();

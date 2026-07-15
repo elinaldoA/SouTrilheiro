@@ -35,3 +35,15 @@ export async function rejeitarGuia(id) {
   const { error } = await supabase.from('guias').delete().eq('id', id);
   if (error) throw error;
 }
+
+/** Entre os ids informados, retorna quais são guias aprovados. */
+export async function listarGuiasAprovadosEntre(usuarioIds) {
+  if (usuarioIds.length === 0) return new Set();
+  const { data, error } = await supabase
+    .from('guias')
+    .select('usuario_id')
+    .eq('aprovado', true)
+    .in('usuario_id', usuarioIds);
+  if (error) throw error;
+  return new Set(data.map((g) => g.usuario_id));
+}

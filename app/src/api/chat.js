@@ -114,8 +114,10 @@ export async function criarGrupo(meuId, nome, membroIds) {
   return conversa.id;
 }
 
+const CAMPOS_CONVERSA = 'id, tipo, nome, criado_por, fechado, criado_em';
+
 export async function buscarConversa(conversaId) {
-  const { data, error } = await supabase.from('conversas').select('id, tipo, nome, criado_em').eq('id', conversaId).single();
+  const { data, error } = await supabase.from('conversas').select(CAMPOS_CONVERSA).eq('id', conversaId).single();
   if (error) throw error;
   return data;
 }
@@ -123,7 +125,7 @@ export async function buscarConversa(conversaId) {
 export async function listarParticipantes(conversaId) {
   const { data, error } = await supabase
     .from('conversa_participantes')
-    .select('usuario_id, usuarios(id, nome, avatar_url)')
+    .select('usuario_id, usuarios(id, nome, avatar_url, is_admin)')
     .eq('conversa_id', conversaId);
   if (error) throw error;
   return data.map((r) => r.usuarios);
@@ -136,16 +138,87 @@ export async function adicionarParticipantes(conversaId, membroIds) {
   if (error) throw error;
 }
 
-const CAMPOS_MENSAGEM = 'id, texto, criado_em, usuario_id, anexo_url, anexo_tipo, anexo_nome';
-
-export async function listarMensagens(conversaId) {
-  const { data, error } = await supabase
-    .from('mensagens')
-    .select(CAMPOS_MENSAGEM)
+/** Remove um membro do grupo. Usado tanto pelo admin (expulsar) quanto pelo próprio usuário (sair). */
+export async function removerParticipante(conversaId, usuarioId) {
+  const { error } = await supabase
+    .from('conversa_participantes')
+    .delete()
     .eq('conversa_id', conversaId)
-    .order('criado_em', { ascending: true });
+    .eq('usuario_id', usuarioId);
+  if (error) throw error;
+}
+
+/** Renomeia um grupo (ação do admin do grupo). */
+export async function renomearGrupo(conversaId, novoNome) {
+  const { data, error } = await supabase
+    .from('conversas')
+    .update({ nome: novoNome })
+    .eq('id', conversaId)
+    .select(CAMPOS_CONVERSA)
+    .single();
   if (error) throw error;
   return data;
+}
+
+/** Fecha o grupo: só o admin pode enviar mensagens ou alterar membros até reabrir. */
+export async function fecharGrupo(conversaId) {
+  const { data, error } = await supabase
+    .from('conversas')
+    .update({ fechado: true })
+    .eq('id', conversaId)
+    .select(CAMPOS_CONVERSA)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/** Reabre um grupo previamente fechado, liberando o envio de mensagens para todos. */
+export async function reabrirGrupo(conversaId) {
+  const { data, error } = await supabase
+    .from('conversas')
+    .update({ fechado: false })
+    .eq('id', conversaId)
+    .select(CAMPOS_CONVERSA)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/** Exclui o grupo inteiro (conversa, participantes e mensagens). Ação irreversível do admin do grupo. */
+export async function excluirGrupo(conversaId) {
+  const { error } = await supabase.from('conversas').delete().eq('id', conversaId);
+  if (error) throw error;
+}
+
+const CAMPOS_MENSAGEM = 'id, texto, criado_em, usuario_id, anexo_url, anexo_tipo, anexo_nome, editado_em';
+
+/** Lista as mensagens de uma conversa, ocultando as que o usuário apagou só para si. */
+export async function listarMensagens(conversaId, usuarioId) {
+  const [{ data: msgs, error: erroMsgs }, { data: ocultas, error: erroOcultas }] = await Promise.all([
+    supabase.from('mensagens').select(CAMPOS_MENSAGEM).eq('conversa_id', conversaId).order('criado_em', { ascending: true }),
+    usuarioId
+      ? supabase.from('mensagem_ocultacoes').select('mensagem_id').eq('usuario_id', usuarioId)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (erroMsgs) throw erroMsgs;
+  if (erroOcultas) throw erroOcultas;
+
+  const idsOcultos = new Set((ocultas ?? []).map((o) => o.mensagem_id));
+  return msgs.filter((m) => !idsOcultos.has(m.id));
+}
+
+/** Apaga uma mensagem só para este usuário: ela continua visível para os outros participantes. */
+export async function apagarMensagemParaMim(mensagemId, usuarioId) {
+  const { error } = await supabase
+    .from('mensagem_ocultacoes')
+    .upsert({ mensagem_id: mensagemId, usuario_id: usuarioId }, { onConflict: 'mensagem_id,usuario_id' });
+  if (error) throw error;
+}
+
+/** Apaga uma mensagem para todos os participantes (autor da mensagem, ou admin). Ação irreversível. */
+export async function apagarMensagemParaTodos(mensagemId) {
+  const { error } = await supabase.from('mensagens').delete().eq('id', mensagemId);
+  if (error) throw error;
 }
 
 function tipoDoAnexo(arquivo) {
@@ -209,6 +282,45 @@ export function assinarMensagens(conversaId, aoReceber) {
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'mensagens', filter: `conversa_id=eq.${conversaId}` },
       (payload) => aoReceber(payload.new)
+    )
+    .subscribe();
+  return () => supabase.removeChannel(canal);
+}
+
+/** Edita o texto de uma mensagem própria (RLS garante que só o autor consegue alterar). */
+export async function editarMensagem(mensagemId, usuarioId, novoTexto) {
+  const { data, error } = await supabase
+    .from('mensagens')
+    .update({ texto: novoTexto, editado_em: new Date().toISOString() })
+    .eq('id', mensagemId)
+    .eq('usuario_id', usuarioId)
+    .select(CAMPOS_MENSAGEM)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/** Avisa os participantes quando uma mensagem é editada, para atualizar o texto em tempo real. */
+export function assinarEdicoesMensagens(conversaId, aoEditar) {
+  const canal = supabase
+    .channel(`mensagens-edicao:${conversaId}`)
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'mensagens', filter: `conversa_id=eq.${conversaId}` },
+      (payload) => aoEditar(payload.new)
+    )
+    .subscribe();
+  return () => supabase.removeChannel(canal);
+}
+
+/** Avisa os participantes quando uma mensagem é apagada para todos. */
+export function assinarExclusaoMensagens(conversaId, aoApagar) {
+  const canal = supabase
+    .channel(`mensagens-exclusao:${conversaId}`)
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'mensagens', filter: `conversa_id=eq.${conversaId}` },
+      (payload) => aoApagar(payload.old.id)
     )
     .subscribe();
   return () => supabase.removeChannel(canal);

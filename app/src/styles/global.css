@@ -402,6 +402,17 @@ a:focus-visible {
   color: var(--ink);
 }
 
+.btn-perigo {
+  background: var(--surface-raised);
+  border: 1px solid var(--p0);
+  color: var(--p0);
+}
+
+.btn-perigo:hover:not(:disabled) {
+  background: var(--p0);
+  color: #fff;
+}
+
 .btn-sm {
   flex: none;
   height: 32px;
@@ -940,6 +951,141 @@ textarea.field {
 
 .chat-bubble-row.mine .chat-bubble-time {
   color: rgba(255, 255, 255, 0.75);
+}
+
+.chat-bubble-editado {
+  opacity: 0.85;
+  margin-right: 4px;
+  font-style: italic;
+}
+
+.chat-bubble-acoes {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.chat-bubble-editar-btn {
+  flex: none;
+  align-self: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.chat-bubble-row:hover .chat-bubble-editar-btn {
+  opacity: 1;
+}
+
+.chat-bubble-editar-btn:hover {
+  color: var(--accent);
+}
+
+.chat-bubble-menu {
+  position: absolute;
+  top: 110%;
+  z-index: 10;
+  background: var(--bg-elevado, var(--bg));
+  border: 1px solid var(--borda, var(--muted));
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  min-width: 180px;
+  overflow: hidden;
+}
+
+.chat-bubble-menu.esquerda {
+  right: 0;
+}
+
+.chat-bubble-menu.direita {
+  left: 0;
+}
+
+.chat-bubble-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: inherit;
+}
+
+.chat-bubble-menu button:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.painel-icone-btn {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-raised);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.painel-icone-btn:hover:not(:disabled) {
+  color: var(--accent);
+  background: var(--line);
+}
+
+.painel-icone-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.chat-bubble-menu button.perigo {
+  color: var(--p0);
+}
+
+.chat-bubble-editar-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.chat-bubble-editar-form input {
+  font-size: 0.86rem;
+  padding: 6px 10px;
+}
+
+.chat-bubble-editar-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 0.72rem;
+}
+
+.chat-bubble-editar-acoes button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.85;
+  padding: 2px 4px;
+}
+
+.chat-bubble-editar-acoes button:hover {
+  opacity: 1;
+  text-decoration: underline;
 }
 
 .chat-input-row {

@@ -7,19 +7,22 @@ self.addEventListener('push', (event) => {
     dados = { titulo: 'SouTrilheiro', corpo: event.data.text() };
   }
 
+  const base = self.registration.scope;
+  const destino = new URL((dados.url || '/').replace(/^\//, ''), base).href;
+
   event.waitUntil(
     self.registration.showNotification(dados.titulo || 'SouTrilheiro', {
       body: dados.corpo,
-      icon: '/icons/logo.jpeg',
-      badge: '/icons/logo.jpeg',
-      data: { url: dados.url || '/' },
+      icon: `${base}icons/logo.jpeg`,
+      badge: `${base}icons/logo.jpeg`,
+      data: { url: destino },
     })
   );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || '/';
+  const url = event.notification.data?.url || self.registration.scope;
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((janelas) => {

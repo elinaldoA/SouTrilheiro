@@ -14,6 +14,7 @@ import {
   assinarLeituras,
   criarCanalDigitando,
 } from '../api/chat';
+import { notificar } from '../api/notificacoesPush';
 import { tocarSomMensagem, somMudo, alternarSomMudo } from '../lib/sound';
 import Avatar from '../components/Avatar';
 import EmojiPicker from '../components/EmojiPicker';
@@ -298,6 +299,10 @@ export default function Chat() {
     try {
       const registro = await enviarMensagem(id, usuario.id, valor, arquivoParaEnviar);
       setMensagens((atuais) => (atuais.some((m) => m.id === registro.id) ? atuais : [...atuais, registro]));
+      const corpoNotificacao = valor || (arquivoParaEnviar ? 'Enviou um anexo' : '');
+      for (const participante of outros) {
+        notificar(participante.id, usuario.nome, corpoNotificacao, `/chat/${id}`);
+      }
     } catch {
       setErroAnexo('Não foi possível enviar. Tente novamente.');
     } finally {

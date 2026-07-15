@@ -11,7 +11,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <img src="/icons/logo.jpeg" alt="" />
+        <img src={`${import.meta.env.BASE_URL}icons/logo.jpeg`} alt="" />
         <span>SouTrilheiro</span>
       </div>
 

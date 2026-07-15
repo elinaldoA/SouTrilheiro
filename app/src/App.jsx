@@ -36,7 +36,7 @@ function TelaAutenticacao({ children }) {
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <img src="/icons/logo.jpeg" alt="SouTrilheiro" className="auth-logo" />
+        <img src={`${import.meta.env.BASE_URL}icons/logo.jpeg`} alt="SouTrilheiro" className="auth-logo" />
         <span className="auth-brand">SouTrilheiro</span>
         <div className="auth-form-wrap">{children}</div>
       </div>

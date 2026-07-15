@@ -330,7 +330,7 @@ export default function Perfil() {
       </button>
 
       <footer className="profile-footer">
-        <img src="/icons/logo.jpeg" alt="" />
+        <img src={`${import.meta.env.BASE_URL}icons/logo.jpeg`} alt="" />
         <span>SouTrilheiro</span>
         <span className="profile-footer-version">v{versaoApp}</span>
       </footer>

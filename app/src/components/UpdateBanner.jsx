@@ -1,11 +1,22 @@
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { version as versaoApp } from '../../package.json';
 
+const INTERVALO_VERIFICACAO_MS = 5 * 60 * 1000;
+
 export default function UpdateBanner() {
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
+    onRegisteredSW(_url, registration) {
+      if (!registration) return;
+
+      const verificar = () => registration.update().catch(() => {});
+      setInterval(verificar, INTERVALO_VERIFICACAO_MS);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') verificar();
+      });
+    },
     onRegisterError(erro) {
       console.error('Falha ao registrar service worker:', erro);
     },

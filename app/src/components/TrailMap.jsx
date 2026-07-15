@@ -14,7 +14,7 @@ const icone = L.icon({
   popupAnchor: [1, -34],
 });
 
-export default function TrailMap({ path, alturaPx = 220 }) {
+export default function TrailMap({ path, alturaPx = 220, interativo = true }) {
   if (!path || path.length === 0) return null;
 
   const inicio = path[0];
@@ -22,7 +22,18 @@ export default function TrailMap({ path, alturaPx = 220 }) {
 
   return (
     <div style={{ height: alturaPx, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)' }}>
-      <MapContainer bounds={path} boundsOptions={{ padding: [24, 24] }} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
+      <MapContainer
+        bounds={path}
+        boundsOptions={{ padding: [24, 24] }}
+        style={{ height: '100%', width: '100%' }}
+        scrollWheelZoom={false}
+        dragging={interativo}
+        touchZoom={interativo}
+        doubleClickZoom={interativo}
+        boxZoom={interativo}
+        keyboard={interativo}
+        zoomControl={interativo}
+      >
         <TileLayer
           attribution='&copy; <a href="https://www.maptiler.com/copyright/" target="_blank">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
           url={`https://api.maptiler.com/maps/outdoor-v2/{z}/{x}/{y}.png?key=${import.meta.env.VITE_MAPTILER_KEY}`}

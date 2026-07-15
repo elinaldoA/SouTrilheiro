@@ -11,6 +11,7 @@ import { excluirAvaliacao, enviarAvaliacao } from '../api/avaliacoes';
 import { excluirFoto, atualizarFoto } from '../api/fotos';
 import { excluirVideo, atualizarVideo } from '../api/videos';
 import TextoComMarcacoes from './TextoComMarcacoes';
+import TrailMap from './TrailMap';
 
 function formatarData(iso) {
   const data = new Date(iso);
@@ -25,6 +26,15 @@ function formatarData(iso) {
   return data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
+const REACOES = [
+  { chave: 'adorei', emoji: '💚', rotulo: 'Adorei' },
+  { chave: 'trilha', emoji: '🥾', rotulo: 'Bom pra trilhar' },
+  { chave: 'uau', emoji: '😮', rotulo: 'Uau' },
+  { chave: 'forte', emoji: '💪', rotulo: 'Que força' },
+  { chave: 'engracado', emoji: '😂', rotulo: 'Engraçado' },
+  { chave: 'aplausos', emoji: '👏', rotulo: 'Parabéns' },
+];
+
 function IconCoracao({ preenchido }) {
   return (
     <svg width="19" height="19" viewBox="0 0 20 20" fill={preenchido ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -37,6 +47,22 @@ function IconComentario() {
   return (
     <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 4.5h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H8l-3.6 3v-3H3a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Z" />
+    </svg>
+  );
+}
+
+function IconChevron() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 7.5 10 13l5-5.5" />
+    </svg>
+  );
+}
+
+function IconSalvo({ preenchido }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill={preenchido ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 3.5h10a1 1 0 0 1 1 1V17l-6-3.6-6 3.6V4.5a1 1 0 0 1 1-1Z" />
     </svg>
   );
 }
@@ -59,7 +85,8 @@ function acaoResumo(item) {
   return <>enviou um vídeo de <Link to={`/trilha/${item.trilha.id}`}>{item.trilha.nome}</Link></>;
 }
 
-export default function FeedItemCard({ item, curtida, totalComentarios, usuarioAtual, onAlternarCurtida, onExcluido, onItemEditado, marcacoes, mencoes }) {
+export default function FeedItemCard({ item, curtida, totalComentarios, usuarioAtual, onAlternarCurtida, salvo, onAlternarSalvo, onExcluido, onItemEditado, marcacoes, mencoes }) {
+  const [reacoesAbertas, setReacoesAbertas] = useState(false);
   const [comentariosAbertos, setComentariosAbertos] = useState(false);
   const [comentarios, setComentarios] = useState(null);
   const [carregandoComentarios, setCarregandoComentarios] = useState(false);
@@ -218,9 +245,12 @@ export default function FeedItemCard({ item, curtida, totalComentarios, usuarioA
       )}
 
       {item.tipo === 'percurso' && (
-        <p className="feed-card-body" style={{ margin: '2px 0 8px' }}>
-          Distância percorrida: <strong>{item.distanciaKm} km</strong>
-        </p>
+        <div className="feed-card-body" style={{ margin: '2px 0 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <p style={{ margin: 0 }}>
+            Distância percorrida: <strong>{item.distanciaKm} km</strong>
+          </p>
+          <TrailMap path={item.pathGeojson} alturaPx={160} interativo={false} />
+        </div>
       )}
 
       {item.tipo === 'avaliacao' && !editando && (
@@ -263,14 +293,46 @@ export default function FeedItemCard({ item, curtida, totalComentarios, usuarioA
       )}
 
       <div className="feed-card-actions">
-        <button type="button" className={`icon-btn ${curtida.curtido ? 'liked' : ''}`} onClick={() => onAlternarCurtida(item)}>
-          <IconCoracao preenchido={curtida.curtido} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <button
+            type="button"
+            className={`icon-btn ${curtida.curtido ? 'liked' : ''}`}
+            aria-label={curtida.curtido ? `Remover reação (${REACOES.find((r) => r.chave === curtida.minhaReacao)?.rotulo ?? ''})` : 'Curtir'}
+            onClick={() => onAlternarCurtida(item, curtida.curtido ? curtida.minhaReacao : 'adorei')}
+          >
+            {curtida.curtido ? (
+              <span style={{ fontSize: '1.05rem', lineHeight: 1 }}>{REACOES.find((r) => r.chave === curtida.minhaReacao)?.emoji ?? '💚'}</span>
+            ) : (
+              <IconCoracao preenchido={false} />
+            )}
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Escolher reação"
+            aria-expanded={reacoesAbertas}
+            onClick={() => setReacoesAbertas((v) => !v)}
+            style={{ padding: '4px 2px' }}
+          >
+            <IconChevron />
+          </button>
+        </div>
 
         <button type="button" className={`icon-btn ${comentariosAbertos ? 'active' : ''}`} onClick={alternarComentarios}>
           <IconComentario />
           {contador > 0 && <span>{contador}</span>}
         </button>
+
+        {onAlternarSalvo && (
+          <button
+            type="button"
+            className={`icon-btn ${salvo ? 'active' : ''}`}
+            aria-label={salvo ? 'Remover dos salvos' : 'Salvar'}
+            onClick={() => onAlternarSalvo(item)}
+          >
+            <IconSalvo preenchido={salvo} />
+          </button>
+        )}
 
         {ehDono && !editando && (
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 12 }}>
@@ -292,8 +354,38 @@ export default function FeedItemCard({ item, curtida, totalComentarios, usuarioA
         )}
       </div>
 
+      {reacoesAbertas && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 14px 8px' }}>
+          {REACOES.map((r) => (
+            <button
+              key={r.chave}
+              type="button"
+              aria-label={r.rotulo}
+              onClick={() => {
+                onAlternarCurtida(item, r.chave);
+                setReacoesAbertas(false);
+              }}
+              style={{
+                fontSize: '1.15rem',
+                lineHeight: 1,
+                padding: '4px 9px',
+                borderRadius: 999,
+                border: `1px solid ${curtida.minhaReacao === r.chave ? 'var(--accent)' : 'var(--line)'}`,
+                background: 'var(--surface-raised)',
+              }}
+            >
+              {r.emoji}
+            </button>
+          ))}
+        </div>
+      )}
+
       {curtida.total > 0 && (
         <p className="feed-card-likes">
+          {REACOES.filter((r) => curtida.porReacao?.[r.chave] > 0)
+            .map((r) => `${r.emoji} ${curtida.porReacao[r.chave]}`)
+            .join('  ')}
+          {' · '}
           {curtida.total} {curtida.total === 1 ? 'curtida' : 'curtidas'}
         </p>
       )}

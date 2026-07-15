@@ -31,6 +31,7 @@ export default function Perfil() {
   const inputAvatarRef = useRef(null);
   const [solicitandoGuia, setSolicitandoGuia] = useState(false);
   const [bioGuia, setBioGuia] = useState('');
+  const [erroGuia, setErroGuia] = useState(null);
   const [editandoTrilhaId, setEditandoTrilhaId] = useState(null);
 
   useEffect(() => {
@@ -101,9 +102,17 @@ export default function Perfil() {
 
   async function aoSolicitarGuia() {
     setSolicitandoGuia(true);
+    setErroGuia(null);
     try {
       await solicitarSerGuia(usuario.id, bioGuia);
       await recarregarGuia();
+    } catch (e) {
+      if (e.code === '23505') {
+        // já existe um pedido de guia para este usuário (ex: feito no cadastro) — só sincroniza o estado local
+        await recarregarGuia();
+      } else {
+        setErroGuia(e.message ?? 'Não foi possível enviar o pedido para ser guia.');
+      }
     } finally {
       setSolicitandoGuia(false);
     }
@@ -297,6 +306,7 @@ export default function Perfil() {
             <button type="button" className="btn btn-outline" onClick={aoSolicitarGuia} disabled={solicitandoGuia}>
               {solicitandoGuia ? 'Enviando…' : 'Quero ser guia'}
             </button>
+            {erroGuia && <p style={{ color: 'var(--p0)', fontSize: '0.85rem', margin: 0 }}>{erroGuia}</p>}
           </>
         )}
       </div>
@@ -304,6 +314,10 @@ export default function Perfil() {
       <InstalarPWA />
 
       <PushToggle usuarioId={usuario.id} />
+
+      <Link to="/salvos" className="btn btn-outline" style={{ textDecoration: 'none', textAlign: 'center' }}>
+        Itens salvos
+      </Link>
 
       {usuario.is_admin && (
         <Link to="/moderacao" className="btn btn-outline" style={{ textDecoration: 'none', textAlign: 'center' }}>

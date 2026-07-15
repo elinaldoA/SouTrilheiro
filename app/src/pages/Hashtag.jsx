@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { buscarPorHashtag } from '../api/hashtags';
-import { buscarCurtidasEmLote, curtir, descurtir } from '../api/curtidas';
+import { buscarCurtidasEmLote, curtir, descurtir, aplicarReacaoOtimista } from '../api/curtidas';
 import { contarComentariosEmLote } from '../api/feedComentarios';
 import { listarMarcacoesEmLote } from '../api/marcacoes';
 import { listarMencoesEmLote } from '../api/mencoes';
@@ -43,19 +43,20 @@ export default function Hashtag() {
     };
   }, [tag]);
 
-  async function alternarCurtida(item) {
+  async function alternarCurtida(item, reacao = 'adorei') {
     const chave = `${item.tipo}:${item.id}`;
-    const atual = curtidas[chave] ?? { total: 0, curtido: false };
-    const otimista = { total: atual.curtido ? atual.total - 1 : atual.total + 1, curtido: !atual.curtido };
-    setCurtidas((c) => ({ ...c, [chave]: otimista }));
+    const atual = curtidas[chave];
+    const { estado, remover } = aplicarReacaoOtimista(atual, reacao);
+    setCurtidas((c) => ({ ...c, [chave]: estado }));
     try {
-      if (atual.curtido) {
+      if (remover) {
         await descurtir(usuario.id, item.tipo, item.id);
       } else {
-        await curtir(usuario.id, item.tipo, item.id);
+        await curtir(usuario.id, item.tipo, item.id, reacao);
       }
-    } catch {
-      setCurtidas((c) => ({ ...c, [chave]: atual }));
+    } catch (e) {
+      console.error('Não foi possível salvar a reação:', e);
+      setCurtidas((c) => ({ ...c, [chave]: atual ?? { total: 0, curtido: false, minhaReacao: null, porReacao: {} } }));
     }
   }
 
@@ -89,7 +90,7 @@ export default function Hashtag() {
               <FeedItemCard
                 key={chave}
                 item={item}
-                curtida={curtidas[chave] ?? { total: 0, curtido: false }}
+                curtida={curtidas[chave] ?? { total: 0, curtido: false, minhaReacao: null, porReacao: {} }}
                 totalComentarios={comentariosTotais[chave] ?? 0}
                 usuarioAtual={usuario}
                 onAlternarCurtida={alternarCurtida}

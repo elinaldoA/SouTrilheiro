@@ -21,6 +21,8 @@ export default function StoriesBar({ usuario, seguidoIds }) {
 
   useEffect(() => {
     carregar();
+    const intervalo = setInterval(carregar, 60_000);
+    return () => clearInterval(intervalo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuario.id, seguidoIds.join(',')]);
 

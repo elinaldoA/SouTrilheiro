@@ -13,6 +13,7 @@ import CadastrarTrilha from './pages/CadastrarTrilha';
 import Moderacao from './pages/Moderacao';
 import PainelGuia from './pages/PainelGuia';
 import Feed from './pages/Feed';
+import Salvos from './pages/Salvos';
 import Pessoas from './pages/Pessoas';
 import Conversas from './pages/Conversas';
 import Chat from './pages/Chat';
@@ -105,6 +106,7 @@ export default function App() {
             <Route path="/perfil" element={<Perfil />} />
             <Route path="/usuario/:id" element={<PerfilPublico />} />
             <Route path="/feed" element={<Feed />} />
+            <Route path="/salvos" element={<Salvos />} />
             <Route path="/hashtag/:tag" element={<Hashtag />} />
             <Route path="/pessoas" element={<Pessoas />} />
             <Route path="/chat" element={<Conversas />} />

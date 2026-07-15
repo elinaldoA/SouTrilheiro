@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { buscarPercursoPorId } from '../api/percursos';
 import { buscarPercursoLocalPorId } from '../api/percursosLocais';
+import { proporTracado, buscarTracadoPropostoPorPercurso } from '../api/tracadosPropostos';
 import { formatarDuracao, formatarRitmo } from '../lib/geo';
 import TrailMap from '../components/TrailMap';
 
@@ -21,6 +22,9 @@ export default function DetalhePercurso() {
   const { usuario, carregando: carregandoAuth } = useAuth();
   const [percurso, setPercurso] = useState(null);
   const [carregando, setCarregando] = useState(true);
+  const [tracadoProposto, setTracadoProposto] = useState(null);
+  const [propondo, setPropondo] = useState(false);
+  const [erroProposta, setErroProposta] = useState(null);
 
   useEffect(() => {
     if (carregandoAuth) return;
@@ -28,6 +32,8 @@ export default function DetalhePercurso() {
     setCarregando(true);
 
     const normalizarRemoto = (p) => ({
+      id: p.id,
+      remoto: true,
       trilhaId: p.trilha_id,
       trilhaNome: p.trilhas?.nome ?? 'Trilha',
       distanciaKm: p.distancia_km,
@@ -56,6 +62,30 @@ export default function DetalhePercurso() {
       cancelado = true;
     };
   }, [id, usuario, carregandoAuth]);
+
+  useEffect(() => {
+    if (!percurso?.remoto || !percurso.trilhaId) return;
+    let cancelado = false;
+    buscarTracadoPropostoPorPercurso(percurso.id).then((p) => {
+      if (!cancelado) setTracadoProposto(p);
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [percurso]);
+
+  async function aoSugerirTracado() {
+    setPropondo(true);
+    setErroProposta(null);
+    try {
+      const proposta = await proporTracado(usuario.id, percurso);
+      setTracadoProposto(proposta);
+    } catch (e) {
+      setErroProposta(e.message ?? 'Não foi possível enviar a sugestão.');
+    } finally {
+      setPropondo(false);
+    }
+  }
 
   if (carregando) return <p className="state-message">Carregando…</p>;
 
@@ -123,6 +153,23 @@ export default function DetalhePercurso() {
         >
           Ver a trilha
         </Link>
+      )}
+
+      {percurso.remoto && percurso.trilhaId && (
+        <>
+          {tracadoProposto ? (
+            <p style={{ color: 'var(--muted)', fontSize: '0.82rem', margin: 0 }}>
+              {tracadoProposto.status === 'pendente' && 'Traçado sugerido — aguardando revisão.'}
+              {tracadoProposto.status === 'aprovado' && 'Sua sugestão de traçado foi aprovada.'}
+              {tracadoProposto.status === 'rejeitado' && 'Sua sugestão de traçado foi rejeitada.'}
+            </p>
+          ) : (
+            <button type="button" className="btn btn-outline" onClick={aoSugerirTracado} disabled={propondo}>
+              {propondo ? 'Enviando…' : 'Sugerir este percurso como traçado oficial da trilha'}
+            </button>
+          )}
+          {erroProposta && <p style={{ color: 'var(--p0)', fontSize: '0.85rem', margin: 0 }}>{erroProposta}</p>}
+        </>
       )}
     </>
   );

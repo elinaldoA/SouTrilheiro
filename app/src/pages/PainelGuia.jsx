@@ -5,7 +5,10 @@ import { listarTrilhasDoUsuario, atualizarTrilha, excluirTrilha } from '../api/t
 import { listarSaidasDoGuia } from '../api/saidas';
 import { enviarFoto } from '../api/fotos';
 import { enviarVideo } from '../api/videos';
+import { listarTracadosPropostosDoGuia, aprovarTracadoProposto, rejeitarTracadoProposto } from '../api/tracadosPropostos';
+import { notificar } from '../api/notificacoesPush';
 import EditarTrilhaForm from '../components/EditarTrilhaForm';
+import TracadoPropostoCard from '../components/TracadoPropostoCard';
 
 const ROTULO_STATUS = { publicada: 'Publicada', pendente_revisao: 'Em revisão' };
 
@@ -17,19 +20,44 @@ export default function PainelGuia() {
   const { usuario, guia, ehGuiaAprovado, carregando: carregandoAuth } = useAuth();
   const [minhasTrilhas, setMinhasTrilhas] = useState([]);
   const [minhasSaidas, setMinhasSaidas] = useState([]);
+  const [tracadosPropostos, setTracadosPropostos] = useState([]);
   const [editandoTrilhaId, setEditandoTrilhaId] = useState(null);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
     if (!usuario || !guia) return;
     setCarregando(true);
-    Promise.all([listarTrilhasDoUsuario(usuario.id), listarSaidasDoGuia(guia.id)])
-      .then(([trilhas, saidas]) => {
-        setMinhasTrilhas(trilhas);
-        setMinhasSaidas(saidas);
+    Promise.allSettled([
+      listarTrilhasDoUsuario(usuario.id),
+      listarSaidasDoGuia(guia.id),
+      listarTracadosPropostosDoGuia(usuario.id),
+    ])
+      .then(([trilhas, saidas, tracados]) => {
+        if (trilhas.status === 'fulfilled') setMinhasTrilhas(trilhas.value);
+        if (saidas.status === 'fulfilled') setMinhasSaidas(saidas.value);
+        if (tracados.status === 'fulfilled') setTracadosPropostos(tracados.value);
+        else console.warn('Não foi possível carregar traçados propostos:', tracados.reason?.message);
       })
       .finally(() => setCarregando(false));
   }, [usuario, guia]);
+
+  async function aoAprovarTracado(proposta) {
+    await aprovarTracadoProposto(proposta.id, proposta.trilha_id, proposta.path_geojson);
+    setTracadosPropostos((atuais) => atuais.filter((t) => t.id !== proposta.id));
+    if (proposta.usuario_id) {
+      notificar(
+        proposta.usuario_id,
+        'Traçado aprovado',
+        `Seu traçado para "${proposta.trilhas?.nome}" foi adotado como oficial.`,
+        `/trilha/${proposta.trilha_id}`
+      );
+    }
+  }
+
+  async function aoRejeitarTracado(proposta) {
+    await rejeitarTracadoProposto(proposta.id);
+    setTracadosPropostos((atuais) => atuais.filter((t) => t.id !== proposta.id));
+  }
 
   if (carregandoAuth) return <p className="state-message">Carregando…</p>;
 
@@ -131,6 +159,16 @@ export default function PainelGuia() {
                 </div>
               )
             )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <h2 style={{ fontSize: '0.95rem' }}>Traçados propostos ({tracadosPropostos.length})</h2>
+            {tracadosPropostos.length === 0 && (
+              <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>Nenhum traçado proposto para suas trilhas.</p>
+            )}
+            {tracadosPropostos.map((t) => (
+              <TracadoPropostoCard key={t.id} proposta={t} onAprovar={aoAprovarTracado} onRejeitar={aoRejeitarTracado} />
+            ))}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

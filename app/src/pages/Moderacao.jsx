@@ -13,7 +13,9 @@ import { enviarFoto } from '../api/fotos';
 import { enviarVideo } from '../api/videos';
 import { notificar } from '../api/notificacoesPush';
 import { listarGuiasPendentes, aprovarGuia, rejeitarGuia } from '../api/guias';
+import { listarTracadosPropostosPendentes, aprovarTracadoProposto, rejeitarTracadoProposto } from '../api/tracadosPropostos';
 import EditarTrilhaForm from '../components/EditarTrilhaForm';
+import TracadoPropostoCard from '../components/TracadoPropostoCard';
 
 const ROTULO_ALVO = { trilha: 'Trilha', foto: 'Foto', video: 'Vídeo', comentario: 'Comentário' };
 
@@ -27,20 +29,28 @@ export default function Moderacao() {
   const [denuncias, setDenuncias] = useState([]);
   const [todasTrilhas, setTodasTrilhas] = useState([]);
   const [guiasPendentes, setGuiasPendentes] = useState([]);
+  const [tracadosPropostos, setTracadosPropostos] = useState([]);
   const [editandoId, setEditandoId] = useState(null);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
     if (!usuario?.is_admin) return;
     let cancelado = false;
-    Promise.all([listarTrilhasPendentes(), listarDenunciasPendentes(), listarTodasTrilhas(), listarGuiasPendentes()])
-      .then(([t, d, todas, guias]) => {
-        if (!cancelado) {
-          setTrilhas(t);
-          setDenuncias(d);
-          setTodasTrilhas(todas);
-          setGuiasPendentes(guias);
-        }
+    Promise.allSettled([
+      listarTrilhasPendentes(),
+      listarDenunciasPendentes(),
+      listarTodasTrilhas(),
+      listarGuiasPendentes(),
+      listarTracadosPropostosPendentes(),
+    ])
+      .then(([t, d, todas, guias, tracados]) => {
+        if (cancelado) return;
+        if (t.status === 'fulfilled') setTrilhas(t.value);
+        if (d.status === 'fulfilled') setDenuncias(d.value);
+        if (todas.status === 'fulfilled') setTodasTrilhas(todas.value);
+        if (guias.status === 'fulfilled') setGuiasPendentes(guias.value);
+        if (tracados.status === 'fulfilled') setTracadosPropostos(tracados.value);
+        else console.warn('Não foi possível carregar traçados propostos:', tracados.reason?.message);
       })
       .finally(() => {
         if (!cancelado) setCarregando(false);
@@ -84,6 +94,24 @@ export default function Moderacao() {
   async function aoResolver(id) {
     await resolverDenuncia(id, 'revisado');
     setDenuncias((atuais) => atuais.filter((d) => d.id !== id));
+  }
+
+  async function aoAprovarTracado(proposta) {
+    await aprovarTracadoProposto(proposta.id, proposta.trilha_id, proposta.path_geojson);
+    setTracadosPropostos((atuais) => atuais.filter((t) => t.id !== proposta.id));
+    if (proposta.usuario_id) {
+      notificar(
+        proposta.usuario_id,
+        'Traçado aprovado',
+        `Seu traçado para "${proposta.trilhas?.nome}" foi adotado como oficial.`,
+        `/trilha/${proposta.trilha_id}`
+      );
+    }
+  }
+
+  async function aoRejeitarTracado(proposta) {
+    await rejeitarTracadoProposto(proposta.id);
+    setTracadosPropostos((atuais) => atuais.filter((t) => t.id !== proposta.id));
   }
 
   async function aoAprovarGuia(id) {
@@ -225,6 +253,16 @@ export default function Moderacao() {
                   </button>
                 </div>
               </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <h2 style={{ fontSize: '0.95rem' }}>Traçados propostos ({tracadosPropostos.length})</h2>
+            {tracadosPropostos.length === 0 && (
+              <p style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>Nenhum traçado proposto.</p>
+            )}
+            {tracadosPropostos.map((t) => (
+              <TracadoPropostoCard key={t.id} proposta={t} onAprovar={aoAprovarTracado} onRejeitar={aoRejeitarTracado} />
             ))}
           </div>
 

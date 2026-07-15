@@ -28,7 +28,9 @@ async function garantirUsuario(authUser) {
   if (error) throw error;
 
   if (authUser.user_metadata?.quer_ser_guia) {
-    await solicitarSerGuia(criado.id, null).catch(() => {});
+    await solicitarSerGuia(criado.id, null).catch((e) => {
+      console.warn('Não foi possível registrar o pedido de guia feito no cadastro:', e.message);
+    });
   }
 
   return criado;
@@ -96,6 +98,24 @@ export function AuthProvider({ children }) {
       });
     return () => {
       cancelado = true;
+    };
+  }, [usuario?.id]);
+
+  useEffect(() => {
+    if (!usuario) return;
+    const canal = supabase
+      .channel(`guia-status:${usuario.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'guias', filter: `usuario_id=eq.${usuario.id}` },
+        () => {
+          meuPerfilGuia(usuario.id).then(setGuia);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(canal);
     };
   }, [usuario?.id]);
 

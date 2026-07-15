@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { distanciaKm as calcularDistanciaKm, simplificarTracado } from '../lib/geo';
+import { baixarGpx, parseGpx } from '../lib/gpx';
 import TrailMap from './TrailMap';
 import TrailMapDrawer from './TrailMapDrawer';
 import TrailMapAoVivo from './TrailMapAoVivo';
@@ -9,7 +10,7 @@ function distanciaTotalKm(pontos) {
   return pontos.slice(1).reduce((soma, p, i) => soma + calcularDistanciaKm(pontos[i][0], pontos[i][1], p[0], p[1]), 0);
 }
 
-export default function TracadoEditor({ localizacaoInicial = null, pathInicial = [], onChange }) {
+export default function TracadoEditor({ localizacaoInicial = null, pathInicial = [], nomeTrilha = '', onChange }) {
   const [localizacao, setLocalizacao] = useState(localizacaoInicial);
   const [buscandoLocalizacao, setBuscandoLocalizacao] = useState(false);
   const [erro, setErro] = useState(null);
@@ -18,6 +19,7 @@ export default function TracadoEditor({ localizacaoInicial = null, pathInicial =
   const [pathGravado, setPathGravado] = useState(pathInicial ?? []);
   const [erroGravacao, setErroGravacao] = useState(null);
   const watchIdRef = useRef(null);
+  const inputGpxRef = useRef(null);
 
   const [desenhandoNoMapa, setDesenhandoNoMapa] = useState(false);
   const [pontosDesenho, setPontosDesenho] = useState([]);
@@ -84,6 +86,29 @@ export default function TracadoEditor({ localizacaoInicial = null, pathInicial =
     setPathGravado([]);
   }
 
+  function abrirSeletorGpx() {
+    inputGpxRef.current?.click();
+  }
+
+  async function importarGpx(e) {
+    const arquivo = e.target.files?.[0];
+    e.target.value = '';
+    if (!arquivo) return;
+    try {
+      const texto = await arquivo.text();
+      const pontos = parseGpx(texto);
+      setPathGravado(pontos);
+      setLocalizacao({ lat: pontos[0][0], lng: pontos[0][1] });
+      setErro(null);
+    } catch (err) {
+      setErro(err.message || 'Não foi possível importar o arquivo GPX.');
+    }
+  }
+
+  function exportarGpx() {
+    baixarGpx(pathGravado, nomeTrilha || 'trilha');
+  }
+
   function iniciarDesenhoNoMapa() {
     if (!localizacao) {
       setErro('Marque a localização do início da trilha antes de desenhar o traçado.');
@@ -144,10 +169,20 @@ export default function TracadoEditor({ localizacaoInicial = null, pathInicial =
             Desenhar traçado no mapa
           </button>
         )}
+        <button type="button" className="btn btn-outline" onClick={abrirSeletorGpx} disabled={gravando || desenhandoNoMapa}>
+          Importar GPX
+        </button>
+        <input ref={inputGpxRef} type="file" accept=".gpx,application/gpx+xml" onChange={importarGpx} style={{ display: 'none' }} />
+        {pathGravado.length > 1 && (
+          <button type="button" className="btn btn-outline" onClick={exportarGpx}>
+            Exportar GPX
+          </button>
+        )}
       </div>
       <p style={{ color: 'var(--muted)', fontSize: '0.78rem', margin: 0 }}>
-        Caminhe pela trilha com o celular para gravar o percurso real no mapa, marque só o ponto de início, ou desenhe o
-        traçado clicando no mapa (arraste um ponto para ajustar a posição ou clique nele para removê-lo).
+        Caminhe pela trilha com o celular para gravar o percurso real no mapa, marque só o ponto de início, desenhe o
+        traçado clicando no mapa, ou importe um arquivo GPX de outro app (arraste um ponto para ajustar a posição ou
+        clique nele para removê-lo).
       </p>
 
       {desenhandoNoMapa && (

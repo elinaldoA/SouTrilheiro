@@ -264,7 +264,10 @@ export default function CadastrarTrilha() {
           </label>
         </div>
 
-        <TracadoEditor onChange={({ localizacao: loc, path }) => { setLocalizacao(loc); setPathGravado(path); }} />
+        <TracadoEditor
+          nomeTrilha={nome}
+          onChange={({ localizacao: loc, path }) => { setLocalizacao(loc); setPathGravado(path); }}
+        />
 
         {erro && <p style={{ color: 'var(--p0)', fontSize: '0.85rem', margin: 0 }}>{erro}</p>}
 

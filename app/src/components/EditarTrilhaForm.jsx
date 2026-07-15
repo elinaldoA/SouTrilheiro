@@ -177,6 +177,7 @@ export default function EditarTrilhaForm({ trilha, onCancelar, onSalvar }) {
       <TracadoEditor
         localizacaoInicial={localizacao}
         pathInicial={trilha.path_geojson ?? []}
+        nomeTrilha={nome}
         onChange={({ localizacao: loc, path }) => {
           setLocalizacao(loc);
           setPathGravado(path);

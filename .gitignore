@@ -10,8 +10,8 @@ dev-dist/
 *.env
 !.env.example
 
-# Migrations do banco (não versionadas)
-database/migration_*.sql
+# Banco de dados (não versionado)
+database/
 
 # Diversos
 .DS_Store

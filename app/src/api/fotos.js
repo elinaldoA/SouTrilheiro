@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
-import { validarImagem } from '../lib/uploadSeguro';
+import { validarImagem, enviarArquivoParaBucket } from '../lib/uploadSeguro';
 
 const BUCKET = 'fotos-trilhas';
 const CAMPOS = 'id, url, legenda, localizacao, criado_em, usuarios(id, nome)';
@@ -8,18 +8,14 @@ export async function enviarFoto(trilhaId, usuarioId, arquivo, legenda, localiza
   const { extensao, contentType } = validarImagem(arquivo);
   const pasta = trilhaId ?? `${usuarioId}/feed`;
   const caminho = `${pasta}/${usuarioId}-${Date.now()}.${extensao}`;
-
-  const { error: erroUpload } = await supabase.storage.from(BUCKET).upload(caminho, arquivo, { contentType });
-  if (erroUpload) throw erroUpload;
-
-  const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(caminho);
+  const url = await enviarArquivoParaBucket(BUCKET, caminho, arquivo, contentType);
 
   const { data, error } = await supabase
     .from('fotos')
     .insert({
       trilha_id: trilhaId ?? null,
       usuario_id: usuarioId,
-      url: publicUrlData.publicUrl,
+      url,
       legenda: legenda || null,
       localizacao: localizacao || null,
     })

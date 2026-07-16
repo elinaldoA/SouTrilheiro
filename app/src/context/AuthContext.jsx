@@ -10,12 +10,13 @@ const AuthContext = createContext(null);
 const CAMPOS_PERFIL_EDITAVEIS = ['nome', 'avatar_url'];
 
 async function garantirUsuario(authUser) {
-  const { data: existente } = await supabase
+  const { data: existente, error: erroBusca } = await supabase
     .from('usuarios')
     .select('*')
     .eq('auth_user_id', authUser.id)
     .maybeSingle();
 
+  if (erroBusca) throw erroBusca;
   if (existente) return existente;
 
   const nomeInicial = authUser.user_metadata?.nome || authUser.email.split('@')[0];
@@ -42,6 +43,8 @@ export function AuthProvider({ children }) {
   const [carregando, setCarregando] = useState(true);
   const [guia, setGuia] = useState(null);
   const [recuperandoSenha, setRecuperandoSenha] = useState(false);
+  const [erroAutenticacao, setErroAutenticacao] = useState(null);
+  const [tentativa, setTentativa] = useState(0);
 
   useEffect(() => {
     let cancelado = false;
@@ -71,9 +74,13 @@ export function AuthProvider({ children }) {
     }
     let cancelado = false;
     setCarregando(true);
+    setErroAutenticacao(null);
     garantirUsuario(session.user)
       .then((u) => {
         if (!cancelado) setUsuario(u);
+      })
+      .catch((e) => {
+        if (!cancelado) setErroAutenticacao(e);
       })
       .finally(() => {
         if (!cancelado) setCarregando(false);
@@ -81,7 +88,9 @@ export function AuthProvider({ children }) {
     return () => {
       cancelado = true;
     };
-  }, [session?.user?.id]);
+  }, [session?.user?.id, tentativa]);
+
+  const tentarNovamenteAutenticacao = useCallback(() => setTentativa((n) => n + 1), []);
 
   useEffect(() => {
     if (!usuario) {
@@ -192,6 +201,8 @@ export function AuthProvider({ children }) {
         session,
         usuario,
         carregando,
+        erroAutenticacao,
+        tentarNovamenteAutenticacao,
         autenticado: !!session?.user,
         cadastrar,
         entrar,

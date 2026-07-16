@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
-import { validarImagem, validarVideo } from '../lib/uploadSeguro';
+import { validarImagem, validarVideo, enviarArquivoParaBucket } from '../lib/uploadSeguro';
 
 const BUCKET_POR_TIPO = { foto: 'fotos-trilhas', video: 'videos-trilhas' };
 
@@ -7,15 +7,11 @@ export async function criarStory(usuarioId, { tipo, arquivo, trilhaId = null }) 
   const bucket = BUCKET_POR_TIPO[tipo];
   const { extensao, contentType } = tipo === 'video' ? validarVideo(arquivo) : validarImagem(arquivo);
   const caminho = `stories/${usuarioId}-${Date.now()}.${extensao}`;
-
-  const { error: erroUpload } = await supabase.storage.from(bucket).upload(caminho, arquivo, { contentType });
-  if (erroUpload) throw erroUpload;
-
-  const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(caminho);
+  const url = await enviarArquivoParaBucket(bucket, caminho, arquivo, contentType);
 
   const { data, error } = await supabase
     .from('stories')
-    .insert({ usuario_id: usuarioId, trilha_id: trilhaId, tipo, url: publicUrlData.publicUrl })
+    .insert({ usuario_id: usuarioId, trilha_id: trilhaId, tipo, url })
     .select('id, tipo, url, criado_em, expira_em, trilha_id, trilhas(id, nome)')
     .single();
   if (error) throw error;

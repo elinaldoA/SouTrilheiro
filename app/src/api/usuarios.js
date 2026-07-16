@@ -1,7 +1,8 @@
 import { supabase } from '../lib/supabaseClient';
-import { validarImagem } from '../lib/uploadSeguro';
+import { validarImagem, enviarArquivoParaBucket } from '../lib/uploadSeguro';
 
 const BUCKET_AVATARES = 'avatares';
+const TAMANHO_MAXIMO_AVATAR = 5 * 1024 * 1024;
 
 export async function listarUsuarios(excluirId) {
   const { data, error } = await supabase
@@ -25,11 +26,7 @@ export async function buscarUsuariosPorNome(termo, excluirId) {
 
 export async function enviarAvatar(authUserId, arquivo) {
   const { extensao, contentType } = validarImagem(arquivo);
+  if (arquivo.size > TAMANHO_MAXIMO_AVATAR) throw new Error('Avatar maior que 5MB.');
   const caminho = `${authUserId}/${Date.now()}.${extensao}`;
-
-  const { error: erroUpload } = await supabase.storage.from(BUCKET_AVATARES).upload(caminho, arquivo, { contentType });
-  if (erroUpload) throw erroUpload;
-
-  const { data: publicUrlData } = supabase.storage.from(BUCKET_AVATARES).getPublicUrl(caminho);
-  return publicUrlData.publicUrl;
+  return enviarArquivoParaBucket(BUCKET_AVATARES, caminho, arquivo, contentType);
 }

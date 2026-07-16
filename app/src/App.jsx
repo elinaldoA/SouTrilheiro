@@ -45,7 +45,7 @@ function TelaAutenticacao({ children }) {
 }
 
 export default function App() {
-  const { usuario, autenticado, carregando, recuperandoSenha } = useAuth();
+  const { usuario, autenticado, carregando, recuperandoSenha, erroAutenticacao, tentarNovamenteAutenticacao } = useAuth();
 
   useEffect(() => {
     if (!usuario) return;
@@ -68,6 +68,17 @@ export default function App() {
       <TelaAutenticacao>
         <h1 style={{ fontSize: '1.2rem' }}>Redefinir senha</h1>
         <RedefinirSenhaForm />
+      </TelaAutenticacao>
+    );
+  }
+
+  if (autenticado && !usuario && erroAutenticacao) {
+    return (
+      <TelaAutenticacao>
+        <p className="state-message">Não foi possível carregar seu perfil. Verifique sua conexão e tente novamente.</p>
+        <button type="button" className="btn btn-primary" onClick={tentarNovamenteAutenticacao}>
+          Tentar novamente
+        </button>
       </TelaAutenticacao>
     );
   }

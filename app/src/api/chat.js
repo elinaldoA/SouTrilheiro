@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
-import { validarImagem, validarVideo } from '../lib/uploadSeguro';
+import { validarImagem, validarVideo, enviarArquivoParaBucket } from '../lib/uploadSeguro';
 
 /** Lista as conversas do usuário (diretas e grupos), com prévia da última mensagem. */
 export async function listarConversas(usuarioId) {
@@ -248,10 +248,8 @@ async function enviarAnexoParaStorage(conversaId, usuarioId, arquivo) {
   }
 
   const caminho = `${conversaId}/${usuarioId}-${Date.now()}.${extensao}`;
-  const { error: erroUpload } = await supabase.storage.from('anexos-chat').upload(caminho, arquivo, { contentType });
-  if (erroUpload) throw erroUpload;
-  const { data } = supabase.storage.from('anexos-chat').getPublicUrl(caminho);
-  return { url: data.publicUrl, tipo, nome: arquivo.name };
+  const url = await enviarArquivoParaBucket('anexos-chat', caminho, arquivo, contentType);
+  return { url, tipo, nome: arquivo.name };
 }
 
 /** Envia uma mensagem, opcionalmente com um arquivo anexado (imagem, vídeo ou documento). */

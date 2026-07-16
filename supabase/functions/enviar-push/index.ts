@@ -17,12 +17,25 @@ webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const ORIGENS_PERMITIDAS = [
+  'https://elinaldoa.github.io',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+];
+
+function corsHeaders(req: Request) {
+  const origin = req.headers.get('Origin') ?? '';
+  const origemPermitida = ORIGENS_PERMITIDAS.includes(origin) ? origin : ORIGENS_PERMITIDAS[0];
+  return {
+    'Access-Control-Allow-Origin': origemPermitida,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    Vary: 'Origin',
+  };
+}
 
 Deno.serve(async (req) => {
+  const CORS_HEADERS = corsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: CORS_HEADERS });
   }

@@ -13,6 +13,9 @@ dev-dist/
 # Banco de dados (não versionado)
 database/
 
+# Metadados locais do Supabase CLI (gerados por "supabase link")
+supabase/.temp/
+
 # Diversos
 .DS_Store
 .claude/

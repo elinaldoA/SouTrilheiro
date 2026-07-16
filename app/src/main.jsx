@@ -8,25 +8,28 @@ import { PresenceProvider } from './context/PresenceContext';
 import { ChatBadgeProvider } from './context/ChatBadgeContext';
 import App from './App';
 import UpdateBanner from './components/UpdateBanner';
+import ErrorBoundary from './components/ErrorBoundary';
 import './lib/installPrompt';
 import './styles/tokens.css';
 import './styles/global.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <ThemeProvider>
-        <AuthProvider>
-          <NotificacoesProvider>
-            <PresenceProvider>
-              <ChatBadgeProvider>
-                <App />
-                <UpdateBanner />
-              </ChatBadgeProvider>
-            </PresenceProvider>
-          </NotificacoesProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <ThemeProvider>
+          <AuthProvider>
+            <NotificacoesProvider>
+              <PresenceProvider>
+                <ChatBadgeProvider>
+                  <App />
+                  <UpdateBanner />
+                </ChatBadgeProvider>
+              </PresenceProvider>
+            </NotificacoesProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>
 );

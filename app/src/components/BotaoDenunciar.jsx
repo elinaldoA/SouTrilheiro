@@ -8,6 +8,7 @@ export default function BotaoDenunciar({ tipoAlvo, alvoId }) {
   const [motivo, setMotivo] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [erro, setErro] = useState('');
 
   if (!usuario) return null;
   if (enviado) {
@@ -17,9 +18,12 @@ export default function BotaoDenunciar({ tipoAlvo, alvoId }) {
   async function enviar() {
     if (!motivo.trim()) return;
     setEnviando(true);
+    setErro('');
     try {
       await criarDenuncia(usuario.id, tipoAlvo, alvoId, motivo.trim());
       setEnviado(true);
+    } catch (e) {
+      setErro(e.message ?? 'Não foi possível enviar a denúncia.');
     } finally {
       setEnviando(false);
     }
@@ -51,6 +55,7 @@ export default function BotaoDenunciar({ tipoAlvo, alvoId }) {
       >
         Enviar
       </button>
+      {erro && <span style={{ fontSize: '0.72rem', color: 'var(--p0)', flexBasis: '100%' }}>{erro}</span>}
     </div>
   );
 }

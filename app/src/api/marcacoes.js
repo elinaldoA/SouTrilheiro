@@ -1,5 +1,10 @@
 import { supabase } from '../lib/supabaseClient';
 
+export async function excluirMarcacao(id) {
+  const { error } = await supabase.from('marcacoes').delete().eq('id', id);
+  if (error) throw error;
+}
+
 export async function marcarPessoas(tipoAlvo, alvoId, criadoPorId, usuarioIds) {
   if (!usuarioIds || usuarioIds.length === 0) return;
   const linhas = usuarioIds.map((usuarioMarcadoId) => ({

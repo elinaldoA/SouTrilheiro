@@ -16,16 +16,16 @@ function consulta(tabela, campos, seguidoIds, tamanhoPagina, cursor) {
   return q;
 }
 
-const TABELAS = {
+export const TABELAS = {
   percursos: { campos: CAMPOS_PERCURSO, tipo: 'percurso' },
   avaliacoes: { campos: CAMPOS_AVALIACAO, tipo: 'avaliacao' },
   fotos: { campos: CAMPOS_FOTO, tipo: 'foto' },
   videos: { campos: CAMPOS_VIDEO, tipo: 'video' },
 };
 
-const TABELA_POR_TIPO = Object.fromEntries(Object.entries(TABELAS).map(([tabela, v]) => [v.tipo, tabela]));
+export const TABELA_POR_TIPO = Object.fromEntries(Object.entries(TABELAS).map(([tabela, v]) => [v.tipo, tabela]));
 
-function mapearLinha(tabela, tipo, linha) {
+export function mapearLinha(tabela, tipo, linha) {
   const base = { id: linha.id, tipo, criadoEm: linha.criado_em, usuario: linha.usuarios, trilha: linha.trilhas };
   if (tabela === 'percursos') return { ...base, distanciaKm: linha.distancia_km, pathGeojson: linha.path_geojson };
   if (tabela === 'avaliacoes') return { ...base, trilhaId: linha.trilha_id, nota: linha.nota, comentario: linha.comentario };

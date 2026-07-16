@@ -9,4 +9,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl ?? '', supabaseAnonKey ?? '');
+export const supabase = createClient(supabaseUrl ?? '', supabaseAnonKey ?? '', {
+  auth: {
+    // sessionStorage isola a sessão por aba, permitindo que usuários diferentes
+    // (admin, guia, comum) fiquem logados simultaneamente em abas separadas
+    // sem que o login de um sobrescreva a sessão do outro (o que acontece com
+    // o localStorage padrão, compartilhado entre abas da mesma origem).
+    storage: window.sessionStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+});

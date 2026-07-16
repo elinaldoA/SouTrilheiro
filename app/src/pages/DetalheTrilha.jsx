@@ -11,7 +11,7 @@ import FotosTrilha from '../components/FotosTrilha';
 import VideosTrilha from '../components/VideosTrilha';
 import BotaoDenunciar from '../components/BotaoDenunciar';
 import SaidasGuiadas from '../components/SaidasGuiadas';
-import { ROTULO_CATEGORIA } from '../lib/categorias';
+import { useCategorias } from '../context/CategoriasContext';
 
 const ROTULO_DIFICULDADE = {
   facil: 'Fácil',
@@ -30,6 +30,7 @@ function formatarTempo(minutos) {
 export default function DetalheTrilha() {
   const { id } = useParams();
   const { usuario } = useAuth();
+  const { rotulo } = useCategorias();
   const [trilha, setTrilha] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
@@ -107,7 +108,7 @@ export default function DetalheTrilha() {
       </p>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {trilha.categoria && <span className="mini-badge">{ROTULO_CATEGORIA[trilha.categoria]}</span>}
+        {trilha.categoria && <span className="mini-badge">{rotulo[trilha.categoria]}</span>}
         <span className="mini-badge" style={trilha.tipo_preco === 'paga' ? { color: 'var(--accent)', borderColor: 'var(--accent)' } : undefined}>
           {trilha.tipo_preco === 'paga' ? `R$ ${Number(trilha.preco).toFixed(2)}` : 'Gratuita'}
         </span>

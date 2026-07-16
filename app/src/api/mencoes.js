@@ -1,5 +1,10 @@
 import { supabase } from '../lib/supabaseClient';
 
+export async function excluirMencao(id) {
+  const { error } = await supabase.from('mencoes').delete().eq('id', id);
+  if (error) throw error;
+}
+
 /**
  * @param {{usuarioId: string, textoMarcador: string}[]} mencoes
  */

@@ -45,6 +45,7 @@ export function AuthProvider({ children }) {
   const [recuperandoSenha, setRecuperandoSenha] = useState(false);
   const [erroAutenticacao, setErroAutenticacao] = useState(null);
   const [tentativa, setTentativa] = useState(0);
+  const [contaBanida, setContaBanida] = useState(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -75,9 +76,16 @@ export function AuthProvider({ children }) {
     let cancelado = false;
     setCarregando(true);
     setErroAutenticacao(null);
+    setContaBanida(null);
     garantirUsuario(session.user)
       .then((u) => {
-        if (!cancelado) setUsuario(u);
+        if (cancelado) return;
+        if (u.banido) {
+          setContaBanida({ motivo: u.banido_motivo ?? null });
+          supabase.auth.signOut();
+          return;
+        }
+        setUsuario(u);
       })
       .catch((e) => {
         if (!cancelado) setErroAutenticacao(e);
@@ -147,8 +155,14 @@ export function AuthProvider({ children }) {
   }, []);
 
   const entrar = useCallback(async (email, senha) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
     if (error) throw error;
+    const { data: perfil } = await supabase
+      .from('usuarios')
+      .select('is_admin')
+      .eq('auth_user_id', data.user.id)
+      .maybeSingle();
+    return { ehAdmin: !!perfil?.is_admin };
   }, []);
 
   const reenviarConfirmacao = useCallback(async (email) => {
@@ -203,6 +217,7 @@ export function AuthProvider({ children }) {
         carregando,
         erroAutenticacao,
         tentarNovamenteAutenticacao,
+        contaBanida,
         autenticado: !!session?.user,
         cadastrar,
         entrar,

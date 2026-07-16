@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { CATEGORIAS_TRILHA } from '../lib/categorias';
+import { useCategorias } from '../context/CategoriasContext';
 import { paraNumero, sanitizarDecimal, sanitizarTempo, paraMinutos, formatarHorasMinutos } from '../lib/numero';
 import TracadoEditor from './TracadoEditor';
 
 export default function EditarTrilhaForm({ trilha, onCancelar, onSalvar }) {
+  const { categorias } = useCategorias();
   const [nome, setNome] = useState(trilha.nome);
   const [localizacao, setLocalizacao] = useState(
     trilha.lat != null && trilha.lng != null ? { lat: trilha.lat, lng: trilha.lng } : null
@@ -147,7 +148,7 @@ export default function EditarTrilhaForm({ trilha, onCancelar, onSalvar }) {
       </select>
 
       <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="field">
-        {CATEGORIAS_TRILHA.map((c) => (
+        {categorias.map((c) => (
           <option key={c.valor} value={c.valor}>
             {c.rotulo}
           </option>

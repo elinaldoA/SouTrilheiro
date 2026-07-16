@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import BottomNav from './components/BottomNav';
 import Sidebar from './components/Sidebar';
 import Avatar from './components/Avatar';
+import AdminRoute from './components/admin/AdminRoute';
+import AdminLayout from './components/admin/AdminLayout';
 import Buscar from './pages/Buscar';
 import DetalheTrilha from './pages/DetalheTrilha';
 import Gravar from './pages/Gravar';
@@ -10,7 +12,6 @@ import Historico from './pages/Historico';
 import DetalhePercurso from './pages/DetalhePercurso';
 import Perfil from './pages/Perfil';
 import CadastrarTrilha from './pages/CadastrarTrilha';
-import Moderacao from './pages/Moderacao';
 import PainelGuia from './pages/PainelGuia';
 import Feed from './pages/Feed';
 import Salvos from './pages/Salvos';
@@ -26,8 +27,7 @@ import { useAuth } from './context/AuthContext';
 import { sincronizarPercursosPendentes } from './lib/sincronizarPercursos';
 
 function Home() {
-  const { ehAdmin, ehGuiaAprovado } = useAuth();
-  if (ehAdmin) return <Moderacao />;
+  const { ehGuiaAprovado } = useAuth();
   if (ehGuiaAprovado) return <PainelGuia />;
   return <Buscar />;
 }
@@ -45,7 +45,9 @@ function TelaAutenticacao({ children }) {
 }
 
 export default function App() {
-  const { usuario, autenticado, carregando, recuperandoSenha, erroAutenticacao, tentarNovamenteAutenticacao } = useAuth();
+  const { usuario, autenticado, carregando, recuperandoSenha, erroAutenticacao, tentarNovamenteAutenticacao, contaBanida } =
+    useAuth();
+  const location = useLocation();
 
   useEffect(() => {
     if (!usuario) return;
@@ -83,11 +85,29 @@ export default function App() {
     );
   }
 
+  if (contaBanida) {
+    return (
+      <TelaAutenticacao>
+        <p className="state-message">
+          Sua conta foi suspensa.{contaBanida.motivo ? ` Motivo: ${contaBanida.motivo}` : ''}
+        </p>
+      </TelaAutenticacao>
+    );
+  }
+
   if (!autenticado || !usuario) {
     return (
       <TelaAutenticacao>
         <LoginForm />
       </TelaAutenticacao>
+    );
+  }
+
+  if (location.pathname.startsWith('/admin')) {
+    return (
+      <AdminRoute>
+        <AdminLayout />
+      </AdminRoute>
     );
   }
 
@@ -123,7 +143,6 @@ export default function App() {
             <Route path="/chat" element={<Conversas />} />
             <Route path="/chat/:id" element={<Chat />} />
             <Route path="/cadastrar-trilha" element={<CadastrarTrilha />} />
-            <Route path="/moderacao" element={<Moderacao />} />
           </Routes>
         </main>
 

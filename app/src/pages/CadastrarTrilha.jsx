@@ -5,11 +5,12 @@ import { cadastrarTrilha } from '../api/trilhas';
 import { enviarFoto } from '../api/fotos';
 import { enviarVideo } from '../api/videos';
 import { paraNumero, sanitizarDecimal, sanitizarTempo, paraMinutos, formatarHorasMinutos } from '../lib/numero';
-import { CATEGORIAS_TRILHA } from '../lib/categorias';
+import { useCategorias } from '../context/CategoriasContext';
 import TracadoEditor from '../components/TracadoEditor';
 
 export default function CadastrarTrilha() {
   const { usuario, ehAdmin, ehGuiaAprovado } = useAuth();
+  const { categorias } = useCategorias();
   const navigate = useNavigate();
 
   const [nome, setNome] = useState('');
@@ -206,7 +207,7 @@ export default function CadastrarTrilha() {
         </select>
 
         <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="field">
-          {CATEGORIAS_TRILHA.map((c) => (
+          {categorias.map((c) => (
             <option key={c.valor} value={c.valor}>
               {c.rotulo}
             </option>

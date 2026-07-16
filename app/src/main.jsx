@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { CategoriasProvider } from './context/CategoriasContext';
 import { NotificacoesProvider } from './context/NotificacoesContext';
 import { PresenceProvider } from './context/PresenceContext';
 import { ChatBadgeProvider } from './context/ChatBadgeContext';
@@ -18,16 +19,18 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <ErrorBoundary>
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <ThemeProvider>
-          <AuthProvider>
-            <NotificacoesProvider>
-              <PresenceProvider>
-                <ChatBadgeProvider>
-                  <App />
-                  <UpdateBanner />
-                </ChatBadgeProvider>
-              </PresenceProvider>
-            </NotificacoesProvider>
-          </AuthProvider>
+          <CategoriasProvider>
+            <AuthProvider>
+              <NotificacoesProvider>
+                <PresenceProvider>
+                  <ChatBadgeProvider>
+                    <App />
+                    <UpdateBanner />
+                  </ChatBadgeProvider>
+                </PresenceProvider>
+              </NotificacoesProvider>
+            </AuthProvider>
+          </CategoriasProvider>
         </ThemeProvider>
       </BrowserRouter>
     </ErrorBoundary>

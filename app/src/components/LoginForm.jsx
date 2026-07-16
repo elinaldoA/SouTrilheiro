@@ -24,8 +24,8 @@ export default function LoginForm() {
     setEnviando(true);
     try {
       if (modo === 'entrar') {
-        await entrar(email, senha);
-        navigate('/', { replace: true });
+        const { ehAdmin } = await entrar(email, senha);
+        navigate(ehAdmin ? '/admin' : '/', { replace: true });
       } else {
         await cadastrar(email, senha, nome, queroSerGuia);
         setMensagem(

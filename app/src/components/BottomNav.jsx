@@ -68,15 +68,6 @@ function IconPainel() {
   );
 }
 
-function IconModeracao() {
-  return (
-    <svg {...propsBase}>
-      <path d="M10 2.5 16.5 5v5c0 4-2.8 6.6-6.5 7.5-3.7-.9-6.5-3.5-6.5-7.5V5Z" />
-      <path d="M7.3 10 9.3 12l3.4-4" />
-    </svg>
-  );
-}
-
 const ITEM_BUSCAR = { to: '/buscar', label: 'Buscar', Icone: IconBuscar };
 
 const ITENS_BASE = [
@@ -89,14 +80,11 @@ const ITENS_BASE = [
 export function useNavItems() {
   const { temAtividadeNova } = useNotificacoes();
   const { totalNaoLidas } = useChatBadge();
-  const { ehAdmin, ehGuiaAprovado } = useAuth();
+  const { ehGuiaAprovado } = useAuth();
 
   let itemInicial = { to: '/', label: 'Buscar', Icone: IconBuscar };
   let itens = ITENS_BASE;
-  if (ehAdmin) {
-    itemInicial = { to: '/', label: 'Moderação', Icone: IconModeracao };
-    itens = [ITEM_BUSCAR, ...ITENS_BASE];
-  } else if (ehGuiaAprovado) {
+  if (ehGuiaAprovado) {
     itemInicial = { to: '/', label: 'Painel', Icone: IconPainel };
     itens = [ITEM_BUSCAR, ...ITENS_BASE];
   }

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { CATEGORIAS_TRILHA, ESTADOS_BR } from '../lib/categorias';
+import { ESTADOS_BR } from '../lib/categorias';
+import { useCategorias } from '../context/CategoriasContext';
 
 const DIFICULDADES = [
   { valor: null, rotulo: 'Todas' },
@@ -20,8 +21,6 @@ const TIPOS_PRECO = [
   { valor: 'gratuita', rotulo: 'Gratuitas' },
   { valor: 'paga', rotulo: 'Pagas' },
 ];
-
-const CATEGORIAS = [{ valor: null, rotulo: 'Todas' }, ...CATEGORIAS_TRILHA];
 
 function rotuloDe(lista, valor) {
   return lista.find((item) => item.valor === valor)?.rotulo;
@@ -56,16 +55,30 @@ export default function FilterChips({
   onChangeTipoPreco,
 }) {
   const [aberto, setAberto] = useState(false);
+  const { categorias } = useCategorias();
+  const categoriasComTodas = useMemo(() => [{ valor: null, rotulo: 'Todas' }, ...categorias], [categorias]);
 
   const ativos = useMemo(() => {
     const lista = [];
     if (dificuldade) lista.push({ chave: 'dificuldade', rotulo: rotuloDe(DIFICULDADES, dificuldade), limpar: () => onChangeDificuldade(null) });
     if (distanciaMax) lista.push({ chave: 'distancia', rotulo: rotuloDe(DISTANCIAS, distanciaMax), limpar: () => onChangeDistancia(null) });
     if (tipoPreco) lista.push({ chave: 'preco', rotulo: rotuloDe(TIPOS_PRECO, tipoPreco), limpar: () => onChangeTipoPreco(null) });
-    if (categoria) lista.push({ chave: 'categoria', rotulo: rotuloDe(CATEGORIAS, categoria), limpar: () => onChangeCategoria(null) });
+    if (categoria) lista.push({ chave: 'categoria', rotulo: rotuloDe(categoriasComTodas, categoria), limpar: () => onChangeCategoria(null) });
     if (estado) lista.push({ chave: 'estado', rotulo: estado, limpar: () => onChangeEstado(null) });
     return lista;
-  }, [dificuldade, distanciaMax, tipoPreco, categoria, estado, onChangeDificuldade, onChangeDistancia, onChangeTipoPreco, onChangeCategoria, onChangeEstado]);
+  }, [
+    dificuldade,
+    distanciaMax,
+    tipoPreco,
+    categoria,
+    estado,
+    categoriasComTodas,
+    onChangeDificuldade,
+    onChangeDistancia,
+    onChangeTipoPreco,
+    onChangeCategoria,
+    onChangeEstado,
+  ]);
 
   function limparTudo() {
     onChangeDificuldade(null);
@@ -143,7 +156,7 @@ export default function FilterChips({
           <div className="filter-group">
             <span className="filter-group-label">Categoria</span>
             <div className="filter-group-chips">
-              {CATEGORIAS.map((c) => (
+              {categoriasComTodas.map((c) => (
                 <Chip key={c.rotulo} ativo={categoria === c.valor} onClick={() => onChangeCategoria(c.valor)}>
                   {c.rotulo}
                 </Chip>

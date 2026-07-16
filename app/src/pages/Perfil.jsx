@@ -320,8 +320,8 @@ export default function Perfil() {
       </Link>
 
       {usuario.is_admin && (
-        <Link to="/moderacao" className="btn btn-outline" style={{ textDecoration: 'none', textAlign: 'center' }}>
-          Moderação
+        <Link to="/admin" className="btn btn-outline" style={{ textDecoration: 'none', textAlign: 'center' }}>
+          Backoffice
         </Link>
       )}
 

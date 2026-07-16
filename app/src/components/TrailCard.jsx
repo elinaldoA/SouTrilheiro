@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ROTULO_CATEGORIA } from '../lib/categorias';
+import { useCategorias } from '../context/CategoriasContext';
 
 const ROTULO_DIFICULDADE = {
   facil: 'Fácil',
@@ -17,6 +17,7 @@ function AvatarTrilha() {
 }
 
 export default function TrailCard({ trilha }) {
+  const { rotulo } = useCategorias();
   return (
     <Link
       to={`/trilha/${trilha.id}`}
@@ -66,7 +67,7 @@ export default function TrailCard({ trilha }) {
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
           <span className="mini-badge">{trilha.distancia_km} km</span>
           <span className="mini-badge">{ROTULO_DIFICULDADE[trilha.dificuldade]}</span>
-          {trilha.categoria && <span className="mini-badge">{ROTULO_CATEGORIA[trilha.categoria]}</span>}
+          {trilha.categoria && <span className="mini-badge">{rotulo[trilha.categoria]}</span>}
           <span className="mini-badge" style={trilha.tipo_preco === 'paga' ? { color: 'var(--accent)', borderColor: 'var(--accent)' } : undefined}>
             {trilha.tipo_preco === 'paga' ? `R$ ${Number(trilha.preco).toFixed(2)}` : 'Gratuita'}
           </span>

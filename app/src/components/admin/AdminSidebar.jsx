@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Avatar from '../Avatar';
+import ThemeToggle from '../ThemeToggle';
 
 const propsBase = {
   width: 18,
@@ -117,6 +118,7 @@ export default function AdminSidebar() {
             <span className="admin-sidebar-user-name">{usuario.nome}</span>
           </NavLink>
         )}
+        <ThemeToggle />
       </div>
     </aside>
   );
